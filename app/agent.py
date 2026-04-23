@@ -1,15 +1,17 @@
+import asyncio
 from pathlib import Path
 
 from google.adk.agents import Agent
 from google.adk.tools.toolbox_toolset import ToolboxToolset
 from toolbox_core.protocol import Protocol
 
-from app.tools.insurance_tools import (
-    search_products_by_profile,
-    get_product_detail,
-    get_recommendation_rules,
-    summarize_user_profile,
+from app.tools.session_tools import (
+    clear_last_recommendation,
+    get_user_profile_snapshot,
+    save_last_recommendation,
+    save_user_profile,
 )
+
 
 APP_NAME = "insurance_recommendation_agent"
 
@@ -19,35 +21,37 @@ def load_prompt() -> str:
     return prompt_path.read_text(encoding="utf-8")
 
 
-def create_agent() -> Agent:
+def create_agent():
     toolbox = ToolboxToolset(
         server_url="http://127.0.0.1:5000",
         protocol=Protocol.MCP,
     )
 
-    return Agent(
+    agent = Agent(
         name=APP_NAME,
         model="gemini-2.5-flash",
         instruction=load_prompt(),
         tools=[
-            # summarize_user_profile,
-            # search_products_by_profile,
-            # get_product_detail,
-            # get_recommendation_rules,
+            get_user_profile_snapshot,
+            save_user_profile,
+            save_last_recommendation,
+            clear_last_recommendation,
             toolbox,
         ],
     )
+    return agent
 
 
 root_agent = create_agent()
 
 
-def main():
+async def main():
     print(f"{APP_NAME} initialized.")
+    print("Session tools attached.")
     print("ToolboxToolset attached.")
     print("Prompt loaded from file.")
     print(root_agent)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

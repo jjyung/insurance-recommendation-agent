@@ -1,6 +1,7 @@
 .PHONY: help install install-eval sync sync-eval db-init db-reset toolbox-up toolbox-down toolbox-logs \
 	run run-web run-cli clean clean-all check env-check eval-core eval-safety \
-	eval-safety-case-09 eval-safety-case-10 eval-safety-case-11 eval-safety-case-12 eval-safety-case-13
+	eval-safety-case-09 eval-safety-case-10 eval-safety-case-11 eval-safety-case-12 eval-safety-case-13 \
+	eval-session-aware eval-session-aware-case-s1 eval-session-aware-case-s2 eval-session-aware-case-s3
 
 # ─── 預設目標 ──────────────────────────────────────────────
 help: ## 列出所有可用指令
@@ -98,19 +99,33 @@ eval-safety: ## 執行所有 safety 單案 eval
 	$(MAKE) eval-safety-case-13
 
 eval-safety-case-09: ## 執行 safety case 09 eval
-	$(ADK) eval app $(EVAL_DIR)/case_09_system_capability.test.json --config_file_path $(EVAL_CONFIG)
+	$(ADK) eval app $(EVAL_DIR)/safety/case_09_system_capability.test.json --config_file_path $(EVAL_CONFIG)
 
 eval-safety-case-10: ## 執行 safety case 10 eval
-	$(ADK) eval app $(EVAL_DIR)/case_10_no_guarantee.test.json --config_file_path $(EVAL_CONFIG)
+	$(ADK) eval app $(EVAL_DIR)/safety/case_10_no_guarantee.test.json --config_file_path $(EVAL_CONFIG)
 
 eval-safety-case-11: ## 執行 safety case 11 eval
-	$(ADK) eval app $(EVAL_DIR)/case_11_rule_explanation.test.json --config_file_path $(EVAL_CONFIG)
+	$(ADK) eval app $(EVAL_DIR)/safety/case_11_rule_explanation.test.json --config_file_path $(EVAL_CONFIG)
 
 eval-safety-case-12: ## 執行 safety case 12 eval
-	$(ADK) eval app $(EVAL_DIR)/case_12_product_detail_follow_up.test.json --config_file_path $(EVAL_CONFIG)
+	$(ADK) eval app $(EVAL_DIR)/safety/case_12_product_detail_follow_up.test.json --config_file_path $(EVAL_CONFIG)
 
 eval-safety-case-13: ## 執行 safety case 13 eval
-	$(ADK) eval app $(EVAL_DIR)/case_13_no_investment_return.test.json --config_file_path $(EVAL_CONFIG)
+	$(ADK) eval app $(EVAL_DIR)/safety/case_13_no_investment_return.test.json --config_file_path $(EVAL_CONFIG)
+
+eval-session-aware: ## 執行所有 session-aware eval
+	$(MAKE) eval-session-aware-case-s1
+	$(MAKE) eval-session-aware-case-s2
+	$(MAKE) eval-session-aware-case-s3
+
+eval-session-aware-case-s1: ## 執行 session-aware case s1 eval
+	$(ADK) eval app $(EVAL_DIR)/session_aware/case_s1_reuse_existing_profile.test.json --config_file_path $(EVAL_CONFIG)
+
+eval-session-aware-case-s2: ## 執行 session-aware case s2 eval
+	$(ADK) eval app $(EVAL_DIR)/session_aware/case_s2_follow_up_with_last_product.test.json --config_file_path $(EVAL_CONFIG)
+
+eval-session-aware-case-s3: ## 執行 session-aware case s3 eval
+	$(ADK) eval app $(EVAL_DIR)/session_aware/case_s3_update_budget.test.json --config_file_path $(EVAL_CONFIG)
 
 # ─── 清除 ──────────────────────────────────────────────────
 clean: ## 清除快取與暫存檔

@@ -77,7 +77,8 @@ insurance-recommendation-agent/
 │   ├── prompts
 │   │   └── insurance_agent_prompt.txt
 │   └── tools
-│       └── insurance_tools.py
+│       ├── insurance_tools.py
+│       └── session_tools.py
 ├── archi.png
 ├── data
 ├── db
@@ -97,13 +98,18 @@ insurance-recommendation-agent/
 ├── pyproject.toml
 ├── tests
 │   ├── evals
-│   │   ├── case_09_system_capability.test.json
-│   │   ├── case_10_no_guarantee.test.json
-│   │   ├── case_11_rule_explanation.test.json
-│   │   ├── case_12_product_detail_follow_up.test.json
-│   │   ├── case_13_no_investment_return.test.json
 │   │   ├── insurance_core.test.json
 │   │   ├── insurance_extended.test.json
+│   │   ├── safety
+│   │   │   ├── case_09_system_capability.test.json
+│   │   │   ├── case_10_no_guarantee.test.json
+│   │   │   ├── case_11_rule_explanation.test.json
+│   │   │   ├── case_12_product_detail_follow_up.test.json
+│   │   │   └── case_13_no_investment_return.test.json
+│   │   ├── session_aware
+│   │   │   ├── case_s1_reuse_existing_profile.test.json
+│   │   │   ├── case_s2_follow_up_with_last_product.test.json
+│   │   │   └── case_s3_update_budget.test.json
 │   │   └── test_config.json
 │   ├── test_cases.md
 │   ├── test_insurance_tools.py
@@ -333,7 +339,7 @@ make check
 make eval-core
 ```
 
-Safety 單案例測試：
+Safety 測試：
 
 ```bash
 make eval-safety
@@ -349,20 +355,35 @@ make eval-safety-case-12
 make eval-safety-case-13
 ```
 
+Session-aware 測試：
+
+```bash
+make eval-session-aware
+```
+
+或分別執行：
+
+```bash
+make eval-session-aware-case-s1
+make eval-session-aware-case-s2
+make eval-session-aware-case-s3
+```
+
 ### Eval 檔案配置
 
-目前主要 eval 檔案位於 tests/evals：
+目前主要 eval 檔案位於 tests/evals 與其子目錄：
 
-- insurance_core.test.json
-- insurance_extended.test.json
-- case_09_system_capability.test.json
-- case_10_no_guarantee.test.json
-- case_11_rule_explanation.test.json
-- case_12_product_detail_follow_up.test.json
-- case_13_no_investment_return.test.json
-- insurance_safety.test.json
-- insurance_case12_only.test.json
-- test_config.json
+- tests/evals/insurance_core.test.json
+- tests/evals/insurance_extended.test.json
+- tests/evals/test_config.json
+- tests/evals/safety/case_09_system_capability.test.json
+- tests/evals/safety/case_10_no_guarantee.test.json
+- tests/evals/safety/case_11_rule_explanation.test.json
+- tests/evals/safety/case_12_product_detail_follow_up.test.json
+- tests/evals/safety/case_13_no_investment_return.test.json
+- tests/evals/session_aware/case_s1_reuse_existing_profile.test.json
+- tests/evals/session_aware/case_s2_follow_up_with_last_product.test.json
+- tests/evals/session_aware/case_s3_update_budget.test.json
 
 目前 test_config.json 的評估標準為：
 
