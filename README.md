@@ -26,16 +26,11 @@
 
 ---
 
-## 目前架構
+## 架構設計
 
-```text
-使用者
--> Google ADK Agent
--> ToolboxToolset
--> MCP Toolbox
--> db/tools.yaml
--> SQLite insurance.db
-```
+### 系統架構圖
+
+![arch](archi.png)
 
 ### 元件責任
 
