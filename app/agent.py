@@ -5,6 +5,8 @@ from google.adk.agents import Agent
 from google.adk.tools.toolbox_toolset import ToolboxToolset
 from toolbox_core.protocol import Protocol
 
+
+from app.app_runtime import load_runtime_config
 from app.tools.session_tools import (
     clear_last_recommendation,
     get_user_profile_snapshot,
@@ -12,8 +14,7 @@ from app.tools.session_tools import (
     save_user_profile,
 )
 
-
-APP_NAME = "insurance_recommendation_agent"
+APP_CONFIG = load_runtime_config()
 
 
 def load_prompt() -> str:
@@ -23,12 +24,12 @@ def load_prompt() -> str:
 
 def create_agent():
     toolbox = ToolboxToolset(
-        server_url="http://127.0.0.1:5000",
+        server_url=APP_CONFIG.toolbox_server_url,
         protocol=Protocol.MCP,
     )
 
     agent = Agent(
-        name=APP_NAME,
+        name=APP_CONFIG.app_name,
         model="gemini-2.5-flash",
         instruction=load_prompt(),
         tools=[
@@ -46,10 +47,13 @@ root_agent = create_agent()
 
 
 async def main():
-    print(f"{APP_NAME} initialized.")
+    print("insurance_recommendation_agent initialized.")
     print("Session tools attached.")
     print("ToolboxToolset attached.")
     print("Prompt loaded from file.")
+    print(f"App name: {APP_CONFIG.app_name}")
+    print(f"Toolbox URL: {APP_CONFIG.toolbox_server_url}")
+    print(f"Session DB URI: {APP_CONFIG.session_db_uri}")
     print(root_agent)
 
 

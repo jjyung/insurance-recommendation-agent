@@ -67,7 +67,13 @@ toolbox-logs: ## 查看 Toolbox 容器日誌
 run: run-web ## 預設以 Web UI 啟動 Agent
 
 run-web: _kill-port ## 以 ADK Web UI 啟動 Agent
-	$(ADK) web $(APP_DIR)
+	@set -e; \
+	if [ -f .env ]; then \
+		export $$(grep -v '^#' .env | xargs); \
+	fi; \
+	$(ADK) web \
+	  --session_service_uri "$$ADK_SESSION_DB_URI" \
+	  .
 
 run-cli: ## 以 CLI 模式啟動 Agent
 	$(ADK) run $(APP_DIR)
@@ -79,7 +85,6 @@ _kill-port: ## (內部) 釋放 ADK_PORT 佔用的程序
 		kill $$PID 2>/dev/null || true; \
 		sleep 1; \
 		kill -9 $$PID 2>/dev/null || true; \
-		echo "✔ Port $(ADK_PORT) 已釋放"; \
 	fi
 
 # ─── 測試 ──────────────────────────────────────────────────
