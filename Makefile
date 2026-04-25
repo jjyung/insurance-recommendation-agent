@@ -1,5 +1,5 @@
 .PHONY: help install install-eval sync sync-eval db-init db-reset toolbox-up toolbox-down toolbox-logs \
-	run run-web run-api run-cli ui-install ui-dev ui-build clean clean-all check env-check eval-core eval-safety \
+	run run-web run-api run-cli run-fastapi ui-install ui-dev ui-build clean clean-all check test-api env-check eval-core eval-safety \
 	eval-safety-case-09 eval-safety-case-10 eval-safety-case-11 eval-safety-case-12 eval-safety-case-13 \
 	eval-session-aware eval-session-aware-case-s1 eval-session-aware-case-s2 eval-session-aware-case-s3
 
@@ -17,6 +17,7 @@ DB_FILE  := db/insurance.db
 ADK      := .venv/bin/adk
 APP_DIR  := .
 ADK_PORT := 8000
+FASTAPI_PORT := 8080
 FRONTEND_DIR := frontend
 EVAL_DIR := tests/evals
 EVAL_CONFIG := $(EVAL_DIR)/test_config.json
@@ -84,6 +85,17 @@ run-api: _kill-port ## 以 ADK API Server 啟動 Agent
 	fi; \
 	$(ADK) api_server .
 
+run-fastapi: ## 以 FastAPI 啟動 backend
+	@set -e; \
+	if [ -f .env ]; then \
+		export $$(grep -v '^#' .env | xargs); \
+	fi; \
+	RELOAD_FLAG=""; \
+	if [ "$${FASTAPI_RELOAD:-true}" = "true" ]; then \
+		RELOAD_FLAG="--reload"; \
+	fi; \
+	$(UV) run uvicorn app.api.main:app --host "$${FASTAPI_HOST:-127.0.0.1}" --port "$${FASTAPI_PORT:-$(FASTAPI_PORT)}" $$RELOAD_FLAG
+
 run-cli: ## 以 CLI 模式啟動 Agent
 	$(ADK) run $(APP_DIR)
 
@@ -108,6 +120,9 @@ _kill-port: ## (內部) 釋放 ADK_PORT 佔用的程序
 # ─── 測試 ──────────────────────────────────────────────────
 check: ## 執行測試
 	$(PYTHON) -m pytest tests/ -v
+
+test-api: ## 執行 FastAPI API 測試
+	$(PYTHON) -m pytest tests/test_fastapi_api.py -v
 
 # ─── ADK Evals ───────────────────────────────────────────
 eval-core: ## 執行核心回歸 eval

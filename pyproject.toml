@@ -41,10 +41,11 @@ dependencies = [
   "toolbox-adk>=1.0.0",
   "toolbox-core>=1.0.0",
   "greenlet>=3.4.0",
+  "pytest>=8.4.2",
 ]
 
 [project.optional-dependencies]
 eval = ["google-adk[eval]>=1.31.1"]
 
-[tool.setuptools]
-packages = ["app"]
+[tool.setuptools.packages.find]
+include = ["app*"]

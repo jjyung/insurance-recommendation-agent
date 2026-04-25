@@ -4,6 +4,11 @@ from typing import Any
 
 from google.adk.tools.tool_context import ToolContext
 
+from app.domain.session_state import (
+    LAST_RECOMMENDATION_STATE_KEYS,
+    TRACKED_PROFILE_STATE_KEYS,
+)
+
 
 def get_user_profile_snapshot(tool_context: ToolContext) -> dict[str, Any]:
     """
@@ -11,20 +16,8 @@ def get_user_profile_snapshot(tool_context: ToolContext) -> dict[str, Any]:
 
     Returns only the keys relevant to insurance recommendation.
     """
-    keys = [
-        "user:age",
-        "user:budget",
-        "user:main_goal",
-        "user:marital_status",
-        "user:has_children",
-        "user:existing_coverage",
-        "user:risk_preference",
-        "user:last_recommended_product_name",
-        "user:last_recommended_product_id",
-    ]
-
     snapshot: dict[str, Any] = {}
-    for key in keys:
+    for key in TRACKED_PROFILE_STATE_KEYS:
         value = tool_context.state.get(key)
         if value is not None:
             snapshot[key] = value
@@ -111,10 +104,7 @@ def clear_last_recommendation(tool_context: ToolContext) -> dict[str, str]:
     """
     Remove the last recommendation pointer from ADK state.
     """
-    for key in [
-        "user:last_recommended_product_name",
-        "user:last_recommended_product_id",
-    ]:
+    for key in LAST_RECOMMENDATION_STATE_KEYS:
         if key in tool_context.state:
             del tool_context.state[key]
 

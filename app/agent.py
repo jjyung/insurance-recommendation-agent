@@ -6,7 +6,7 @@ from google.adk.tools.toolbox_toolset import ToolboxToolset
 from toolbox_core.protocol import Protocol
 
 
-from app.app_runtime import load_runtime_config
+from app.core.config import AppRuntimeConfig, load_runtime_config
 from app.tools.session_tools import (
     clear_last_recommendation,
     get_user_profile_snapshot,
@@ -22,15 +22,16 @@ def load_prompt() -> str:
     return prompt_path.read_text(encoding="utf-8")
 
 
-def create_agent():
+def create_agent(config: AppRuntimeConfig | None = None):
+    runtime_config = config or APP_CONFIG
     toolbox = ToolboxToolset(
-        server_url=APP_CONFIG.toolbox_server_url,
+        server_url=runtime_config.toolbox_server_url,
         protocol=Protocol.MCP,
     )
 
     agent = Agent(
-        name=APP_CONFIG.app_name,
-        model=APP_CONFIG.model_name,
+        name=runtime_config.app_name,
+        model=runtime_config.model_name,
         instruction=load_prompt(),
         tools=[
             get_user_profile_snapshot,
@@ -43,7 +44,7 @@ def create_agent():
     return agent
 
 
-root_agent = create_agent()
+root_agent = create_agent(APP_CONFIG)
 
 
 async def main():
