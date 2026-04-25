@@ -1,5 +1,5 @@
 .PHONY: help install install-eval sync sync-eval db-init db-reset toolbox-up toolbox-down toolbox-logs \
-	run run-web run-cli clean clean-all check env-check eval-core eval-safety \
+	run run-web run-api run-cli ui-install ui-dev ui-build clean clean-all check env-check eval-core eval-safety \
 	eval-safety-case-09 eval-safety-case-10 eval-safety-case-11 eval-safety-case-12 eval-safety-case-13 \
 	eval-session-aware eval-session-aware-case-s1 eval-session-aware-case-s2 eval-session-aware-case-s3
 
@@ -12,10 +12,12 @@ help: ## 列出所有可用指令
 PYTHON   := .venv/bin/python
 UV       := uv
 SQLITE   := sqlite3
+NPM      := npm
 DB_FILE  := db/insurance.db
 ADK      := .venv/bin/adk
 APP_DIR  := .
 ADK_PORT := 8000
+FRONTEND_DIR := frontend
 EVAL_DIR := tests/evals
 EVAL_CONFIG := $(EVAL_DIR)/test_config.json
 
@@ -75,8 +77,24 @@ run-web: _kill-port ## 以 ADK Web UI 啟動 Agent
 	  --session_service_uri "$$ADK_SESSION_DB_URI" \
 	  .
 
+run-api: _kill-port ## 以 ADK API Server 啟動 Agent
+	@set -e; \
+	if [ -f .env ]; then \
+		export $$(grep -v '^#' .env | xargs); \
+	fi; \
+	$(ADK) api_server .
+
 run-cli: ## 以 CLI 模式啟動 Agent
 	$(ADK) run $(APP_DIR)
+
+ui-install: ## 安裝 Next.js mock UI 依賴
+	$(NPM) --prefix $(FRONTEND_DIR) install
+
+ui-dev: ## 啟動 Next.js mock UI
+	$(NPM) --prefix $(FRONTEND_DIR) run dev
+
+ui-build: ## 建置 Next.js mock UI
+	$(NPM) --prefix $(FRONTEND_DIR) run build
 
 _kill-port: ## (內部) 釋放 ADK_PORT 佔用的程序
 	@PID=$$(lsof -ti :$(ADK_PORT) 2>/dev/null); \

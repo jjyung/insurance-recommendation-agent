@@ -292,6 +292,49 @@ make run
 make run-cli
 ```
 
+啟動 Next.js mock UI：
+
+```bash
+make ui-install
+make ui-dev
+```
+
+啟動後可在瀏覽器開啟：
+
+```text
+http://127.0.0.1:3000
+```
+
+這個介面是模擬 ADK Web 的開發用前端，提供 session 列表、聊天視窗、event history 與 state inspector，並已透過 Next.js API route 代理 ADK API Server。
+
+若要啟用接近 ADK Web 的串流體驗，請另外啟動 ADK API Server：
+
+```bash
+make run-api
+```
+
+前端 proxy 預設會呼叫：
+
+- ADK_API_BASE_URL=http://127.0.0.1:8000
+- ADK_API_APP_NAME=app
+- ADK_API_USER_ID=demo-user
+
+若需要覆寫，可在 frontend/.env.local 設定：
+
+```env
+ADK_API_BASE_URL=http://127.0.0.1:8000
+ADK_API_APP_NAME=app
+ADK_API_USER_ID=demo-user
+```
+
+當 ADK API Server 可用時，介面會：
+
+- 透過 /api/agent/run 呼叫 ADK /run_sse
+- 逐步顯示 tool call、tool result、state delta 與 token stream
+- 在右側 inspector 持續追加 event history 與 session state
+
+若 API Server 不可用，前端會自動退回本地 mock flow，方便持續開發 UI。
+
 一鍵完成安裝、建庫與啟動 Toolbox：
 
 ```bash
@@ -316,7 +359,8 @@ http://127.0.0.1:8000
 make install
 make db-init
 make toolbox-up
-make run
+make run-api
+make ui-dev
 ```
 
 ---
@@ -424,7 +468,7 @@ make eval-session-aware-case-s3
 4. 推薦規則覆蓋範圍有限。
 5. FAQ/embedding 檢索尚未接入正式推薦流程。
 6. 本地 Python helper 與 YAML 工具存在雙軌實作，後續仍可再收斂。
-7. 目前 UI 以 ADK Web UI 為主，尚未提供獨立前端。
+7. Next.js 前端目前只代理單一 session 路徑，尚未完整覆蓋 ADK Web 的多頁面操作與 artifact 檢視。
 
 ---
 
