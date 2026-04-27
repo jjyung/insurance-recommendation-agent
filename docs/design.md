@@ -160,4 +160,4 @@ FastAPI Route
 
 - 將 Toolbox 健康檢查改為正式 adapter。
 - 把 observability、structured logging、latency metrics 收進 core/infrastructure。
-- 視需要把 local sqlite helper 從 app/tools/insurance_tools.py 移到 reference implementation 位置。
+- 視需要補充 reference implementation 文件，說明 SQL 工具與查詢規則的對照關係。

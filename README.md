@@ -51,17 +51,7 @@
 - 以 gemini-2.5-flash 作為模型
 - 從 app/prompts/insurance_agent_prompt.txt 載入主代理提示詞
 - 透過 ToolboxToolset 連接 http://127.0.0.1:5000 的 MCP Toolbox
-- 在正式執行路徑中使用 Toolbox 提供的工具，而不是直接把本地 Python helper 註冊成 agent tools
-
-### 本地 Python helper 的角色
-
-app/tools/insurance_tools.py 仍保留一組本地 SQLite helper，主要用途是：
-
-- 提供查詢邏輯的參考實作
-- 供本地測試與資料檢查使用
-- 幫助比對 YAML 工具與 Python 查詢行為
-
-換句話說，執行中的 Agent 目前主要依賴 MCP Toolbox；本地 Python helper 是輔助與測試資產，不是主要 runtime tool surface。
+- 在正式執行路徑中使用 Toolbox 提供的工具，工具定義以 db/tools.yaml 為唯一來源
 
 ---
 
@@ -77,7 +67,6 @@ insurance-recommendation-agent/
 │   ├── prompts
 │   │   └── insurance_agent_prompt.txt
 │   └── tools
-│       ├── insurance_tools.py
 │       └── session_tools.py
 ├── archi.png
 ├── data
@@ -112,7 +101,6 @@ insurance-recommendation-agent/
 │   │   │   └── case_s3_update_budget.test.json
 │   │   └── test_config.json
 │   ├── test_cases.md
-│   ├── test_insurance_tools.py
 │   └── test_result_template.md
 └── uv.lock
 ```
@@ -379,7 +367,7 @@ make ui-dev        # 啟動 Next.js 前端（port 3000）
 make check
 ```
 
-目前 tests/test_insurance_tools.py 主要用來驗證本地 SQLite helper 的查詢結果。
+目前 Python 測試重點為 API 與整體流程行為，工具查詢邏輯以 db/tools.yaml 與 ADK 端到端行為為主。
 
 ### ADK evals
 
