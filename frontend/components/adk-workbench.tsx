@@ -378,7 +378,37 @@ export function AdkWorkbench() {
     e.stopPropagation();
     setSessions((prev) => {
       const next = prev.filter((s) => s.id !== sessionId);
-      if (next.length === 0) return prev; // keep at least one session
+      if (next.length === 0) {
+        // 最後一筆也允許刪除：自動建立新的空對話
+        const seed = Date.now();
+        const newSession: SessionRecord = {
+          id: `session-${seed}`,
+          title: '新對話',
+          subtitle: '開始新的對話',
+          status: 'idle',
+          updatedAt: '剛剛',
+          messages: [],
+          events: [],
+          state: {},
+        };
+        setActiveSessionId(newSession.id);
+        setSelectedEventId('');
+        fetch(
+          `/api/apps/${APP_NAME}/users/${encodeURIComponent(userId)}/sessions`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: newSession.id,
+              state: {
+                _ui_title: newSession.title,
+                _ui_subtitle: newSession.subtitle,
+              },
+            }),
+          },
+        ).catch(() => {});
+        return [newSession];
+      }
       if (sessionId === activeSessionId) {
         const fallback = next[0];
         setActiveSessionId(fallback.id);
@@ -796,7 +826,7 @@ export function AdkWorkbench() {
                     onClick={(e) => handleDeleteSession(e, session.id)}
                     title='刪除對話'
                     aria-label='刪除對話'
-                    disabled={sessions.length <= 1}
+                    disabled={false}
                   >
                     <svg
                       viewBox='0 0 14 14'
