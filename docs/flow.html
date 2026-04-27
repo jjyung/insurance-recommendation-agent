@@ -1,0 +1,3473 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Insurance Recommendation Agent — 設計流程說明</title>
+    <style>
+      html {
+        scroll-behavior: smooth;
+      }
+
+      :root {
+        --bg: #f4efe6;
+        --panel: rgba(255, 252, 247, 0.93);
+        --ink: #1e2430;
+        --muted: #5e6573;
+        --muted-strong: #4d5563;
+        --line: #264653;
+        --line-soft: rgba(38, 70, 83, 0.18);
+        --accent: #d97706;
+        --accent-soft: rgba(217, 119, 6, 0.14);
+        --teal: #2a9d8f;
+        --teal-soft: rgba(42, 157, 143, 0.14);
+        --rose: #b94f6d;
+        --rose-soft: rgba(185, 79, 109, 0.14);
+        --blue: #457b9d;
+        --blue-soft: rgba(69, 123, 157, 0.14);
+        --shadow: 0 20px 48px rgba(40, 32, 14, 0.11);
+        --shadow-soft: 0 8px 22px rgba(40, 32, 14, 0.07);
+        --panel-border: rgba(38, 70, 83, 0.1);
+        --radius: 22px;
+        --mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+        --sans: 'Avenir Next', 'PingFang TC', 'Noto Sans TC', sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: var(--sans);
+        color: var(--ink);
+        line-height: 1.65;
+        -webkit-font-smoothing: antialiased;
+        background:
+          radial-gradient(
+            circle at top left,
+            rgba(217, 119, 6, 0.16),
+            transparent 30%
+          ),
+          radial-gradient(
+            circle at top right,
+            rgba(42, 157, 143, 0.14),
+            transparent 28%
+          ),
+          linear-gradient(180deg, #f8f4ed 0%, var(--bg) 100%);
+      }
+
+      .shell {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 52px 28px 96px;
+      }
+
+      /* ── Hero ── */
+      .hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 32px;
+        padding: 44px 44px 36px;
+        background:
+          linear-gradient(
+            140deg,
+            rgba(255, 249, 240, 0.97),
+            rgba(250, 241, 224, 0.9)
+          ),
+          #fff;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--panel-border);
+        margin-bottom: 24px;
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.72fr);
+        gap: 28px;
+        align-items: start;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 16px;
+        color: var(--accent);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .eyebrow::before {
+        content: '';
+        width: 36px;
+        height: 2px;
+        background: currentColor;
+        opacity: 0.55;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(2.2rem, 3.3vw, 3.5rem);
+        line-height: 1.04;
+        letter-spacing: -0.04em;
+      }
+
+      .lede {
+        margin-top: 18px;
+        max-width: 68ch;
+        color: var(--muted-strong);
+        line-height: 1.82;
+        font-size: 1.03rem;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 24px;
+      }
+
+      .pill {
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.84);
+        border: 1px solid rgba(38, 70, 83, 0.12);
+        font-size: 0.91rem;
+        box-shadow: var(--shadow-soft);
+      }
+
+      /* reading card */
+      .reading-card {
+        padding: 22px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.84);
+        border: 1px solid rgba(38, 70, 83, 0.12);
+        box-shadow: var(--shadow-soft);
+      }
+      .reading-card::before {
+        content: '';
+        display: block;
+        width: 52px;
+        height: 3px;
+        margin-bottom: 18px;
+        border-radius: 999px;
+        background: linear-gradient(
+          90deg,
+          var(--accent),
+          rgba(217, 119, 6, 0.18)
+        );
+      }
+      .reading-card h2 {
+        font-size: 1.05rem;
+        letter-spacing: -0.02em;
+      }
+      .reading-card p {
+        margin-top: 10px;
+        color: var(--muted-strong);
+        font-size: 0.93rem;
+        line-height: 1.76;
+      }
+      .reading-list {
+        display: grid;
+        gap: 12px;
+        margin-top: 14px;
+      }
+      .reading-step {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+      }
+      .reading-step strong {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        background: rgba(217, 119, 6, 0.12);
+        color: var(--accent);
+        font-size: 0.88rem;
+      }
+      .reading-step span {
+        color: var(--muted-strong);
+        font-size: 0.92rem;
+        line-height: 1.68;
+      }
+
+      /* ── Quick nav ── */
+      .nav-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 22px 26px;
+        border-radius: var(--radius);
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        box-shadow: var(--shadow-soft);
+        margin-bottom: 26px;
+        align-items: center;
+      }
+      .nav-label {
+        font-size: 0.85rem;
+        color: var(--muted);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        font-weight: 700;
+        margin-right: 4px;
+      }
+      .nav-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 10px 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(38, 70, 83, 0.11);
+        background: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+        font-size: 0.91rem;
+        font-weight: 600;
+        color: var(--ink);
+        box-shadow: var(--shadow-soft);
+        transition:
+          transform 160ms ease,
+          box-shadow 160ms ease;
+      }
+      .nav-link:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 28px rgba(40, 32, 14, 0.1);
+      }
+      .nav-link span {
+        display: inline-grid;
+        place-items: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        background: rgba(38, 70, 83, 0.08);
+        color: var(--muted);
+        font-size: 0.74rem;
+        font-family: var(--mono);
+      }
+
+      /* ── Layout ── */
+      .section-anchor {
+        scroll-margin-top: 110px;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 30px;
+        backdrop-filter: blur(10px);
+      }
+
+      .layout {
+        display: grid;
+        gap: 24px;
+      }
+      .grid-two {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+      }
+
+      /* ── Section head ── */
+      .section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 18px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+      }
+      .section-kicker {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 10px;
+        margin-bottom: 8px;
+        border-radius: 999px;
+        background: rgba(38, 70, 83, 0.08);
+        color: var(--muted);
+        font-size: 0.76rem;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        font-weight: 700;
+      }
+      .section-head h2 {
+        font-size: clamp(1.4rem, 2vw, 2.05rem);
+        letter-spacing: -0.033em;
+      }
+      .section-head p {
+        color: var(--muted-strong);
+        max-width: 60ch;
+        line-height: 1.78;
+        font-size: 0.97rem;
+      }
+
+      /* ── Legend ── */
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 6px;
+      }
+      .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        padding: 10px 13px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(38, 70, 83, 0.1);
+        color: var(--muted-strong);
+        font-size: 0.91rem;
+      }
+      .legend-swatch {
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+        display: inline-block;
+        flex-shrink: 0;
+      }
+
+      /* ── Module table ── */
+      .module-table-wrap {
+        overflow-x: auto;
+        margin-top: 20px;
+        border-radius: 16px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+        min-width: 640px;
+      }
+      thead tr {
+        background: rgba(38, 70, 83, 0.06);
+      }
+      th {
+        padding: 12px 16px;
+        text-align: left;
+        font-weight: 700;
+        color: var(--muted-strong);
+        font-size: 0.82rem;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        border-bottom: 1px solid rgba(38, 70, 83, 0.1);
+      }
+      td {
+        padding: 11px 16px;
+        border-bottom: 1px solid rgba(38, 70, 83, 0.07);
+        vertical-align: top;
+        line-height: 1.68;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      tr:hover td {
+        background: rgba(255, 255, 255, 0.6);
+      }
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.77rem;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .badge-accent {
+        background: var(--accent-soft);
+        color: #92400e;
+        border: 1px solid rgba(217, 119, 6, 0.3);
+      }
+      .badge-blue {
+        background: var(--blue-soft);
+        color: #1d4e6b;
+        border: 1px solid rgba(69, 123, 157, 0.3);
+      }
+      .badge-teal {
+        background: var(--teal-soft);
+        color: #134e47;
+        border: 1px solid rgba(42, 157, 143, 0.3);
+      }
+      .badge-rose {
+        background: var(--rose-soft);
+        color: #6b1c33;
+        border: 1px solid rgba(185, 79, 109, 0.3);
+      }
+
+      /* ── Step list ── */
+      .step-list {
+        display: grid;
+        gap: 14px;
+        margin-top: 20px;
+      }
+      .step-item {
+        display: grid;
+        grid-template-columns: 40px minmax(0, 1fr);
+        gap: 14px;
+        align-items: start;
+        padding: 16px 18px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.74);
+        border: 1px solid rgba(38, 70, 83, 0.09);
+      }
+      .step-num {
+        display: grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        font-family: var(--mono);
+        flex-shrink: 0;
+      }
+      .step-num-accent {
+        background: var(--accent-soft);
+        color: #92400e;
+      }
+      .step-num-teal {
+        background: var(--teal-soft);
+        color: #134e47;
+      }
+      .step-num-blue {
+        background: var(--blue-soft);
+        color: #1d4e6b;
+      }
+      .step-body {
+      }
+      .step-body strong {
+        display: block;
+        font-size: 0.98rem;
+        margin-bottom: 5px;
+      }
+      .step-body p {
+        color: var(--muted-strong);
+        font-size: 0.92rem;
+        line-height: 1.74;
+      }
+      .step-body code {
+        font-family: var(--mono);
+        font-size: 0.82em;
+        background: rgba(38, 70, 83, 0.07);
+        padding: 1px 5px;
+        border-radius: 5px;
+        color: var(--ink);
+      }
+
+      /* ── Diagram ── */
+      .diagram-card {
+        padding: 22px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 250, 243, 0.98),
+          rgba(255, 247, 238, 0.93)
+        );
+        border-radius: 18px;
+        border: 1px solid rgba(38, 70, 83, 0.09);
+        margin-top: 20px;
+      }
+      .diagram-card h3 {
+        font-size: 1.12rem;
+        margin-bottom: 10px;
+        letter-spacing: -0.02em;
+      }
+      .diagram-card p {
+        color: var(--muted-strong);
+        line-height: 1.73;
+        margin-bottom: 12px;
+        font-size: 0.95rem;
+      }
+      .diagram-hint {
+        margin: 0 0 14px;
+        padding: 10px 13px;
+        border-radius: 12px;
+        background: rgba(38, 70, 83, 0.05);
+        border-left: 3px solid rgba(217, 119, 6, 0.45);
+        color: var(--muted-strong);
+        font-size: 0.89rem;
+        line-height: 1.64;
+      }
+      .diagram-frame {
+        overflow-x: auto;
+        padding-bottom: 4px;
+        border-radius: 14px;
+      }
+      .diagram-frame svg {
+        min-width: 800px;
+      }
+      .diagram-frame--wide svg {
+        min-width: 1100px;
+      }
+      svg {
+        width: 100%;
+        height: auto;
+        display: block;
+        border-radius: 14px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.93),
+          rgba(250, 245, 237, 0.93)
+        );
+        border: 1px solid rgba(38, 70, 83, 0.07);
+      }
+
+      /* ── Caption grid ── */
+      .caption-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+      .caption {
+        border-radius: 16px;
+        padding: 16px 18px;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(38, 70, 83, 0.09);
+        box-shadow: var(--shadow-soft);
+      }
+      .caption strong {
+        display: block;
+        font-size: 0.92rem;
+        margin-bottom: 7px;
+      }
+      .caption span {
+        color: var(--muted-strong);
+        line-height: 1.72;
+        font-size: 0.9rem;
+      }
+
+      /* ── Callout / footnote ── */
+      .footnote {
+        margin-top: 26px;
+        padding: 18px 20px;
+        border-radius: 16px;
+        background: rgba(38, 70, 83, 0.055);
+        border: 1px solid rgba(38, 70, 83, 0.08);
+        color: var(--muted-strong);
+        line-height: 1.8;
+        font-size: 0.94rem;
+      }
+
+      .error-box {
+        margin-top: 16px;
+        padding: 14px 18px;
+        border-radius: 14px;
+        background: var(--rose-soft);
+        border: 1px solid rgba(185, 79, 109, 0.25);
+        color: #6b1c33;
+        font-size: 0.91rem;
+        line-height: 1.72;
+      }
+
+      code {
+        font-family: var(--mono);
+        font-size: 0.85em;
+        background: rgba(38, 70, 83, 0.07);
+        padding: 1px 5px;
+        border-radius: 5px;
+      }
+
+      .mono {
+        font-family: var(--mono);
+      }
+
+      /* ── Summary cards ── */
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 18px;
+      }
+      .summary-card {
+        padding: 20px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.78);
+        border: 1px solid rgba(38, 70, 83, 0.09);
+        box-shadow: var(--shadow-soft);
+      }
+      .summary-card strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 0.97rem;
+      }
+      .summary-card p {
+        color: var(--muted-strong);
+        font-size: 0.93rem;
+        line-height: 1.74;
+      }
+      .summary-card--accent {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 247, 235, 0.9),
+          rgba(255, 255, 255, 0.72)
+        );
+      }
+      .summary-card--blue {
+        background: linear-gradient(
+          180deg,
+          rgba(239, 247, 252, 0.9),
+          rgba(255, 255, 255, 0.72)
+        );
+      }
+      .summary-card--teal {
+        background: linear-gradient(
+          180deg,
+          rgba(235, 248, 244, 0.93),
+          rgba(255, 255, 255, 0.72)
+        );
+      }
+
+      /* ── Envelope types ── */
+      .envelope-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 16px;
+      }
+      .envelope-item {
+        padding: 13px 15px;
+        border-radius: 13px;
+        background: rgba(255, 255, 255, 0.78);
+        border: 1px solid rgba(38, 70, 83, 0.09);
+      }
+      .envelope-item strong {
+        display: block;
+        font-family: var(--mono);
+        font-size: 0.88rem;
+        margin-bottom: 5px;
+      }
+      .envelope-item span {
+        color: var(--muted-strong);
+        font-size: 0.87rem;
+        line-height: 1.65;
+      }
+
+      /* ── Responsive ── */
+      @media (max-width: 1080px) {
+        .grid-two,
+        .caption-grid,
+        .summary-grid,
+        .hero-grid {
+          grid-template-columns: 1fr;
+        }
+        .envelope-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @media (max-width: 720px) {
+        .shell {
+          padding: 22px 14px 60px;
+        }
+        .hero,
+        .panel {
+          padding: 20px;
+        }
+        h1 {
+          font-size: 2rem;
+        }
+        .envelope-grid {
+          grid-template-columns: 1fr;
+        }
+        .section-head {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <!-- ══════════ HERO ══════════ -->
+      <section class="hero">
+        <div class="hero-grid">
+          <div>
+            <div class="eyebrow">Insurance Recommendation Agent</div>
+            <h1>設計流程說明</h1>
+            <p class="lede">
+              本頁依據
+              <code>docs/FLOW.md</code
+              >，將兩條核心流程轉成視覺化流程圖與逐步說明： （一）FastAPI 啟動到
+              AppContainer 完整就緒； （二）收到 POST /api/agent/run 到 SSE
+              StreamingResponse 持續輸出。
+            </p>
+            <div class="pill-row">
+              <div class="pill">情境一：ASGI 載入 → AppContainer 就緒</div>
+              <div class="pill">情境二：HTTP 請求 → SSE envelope 輸出</div>
+              <div class="pill">
+                共用核心：config / agent / session_service / runner
+              </div>
+            </div>
+          </div>
+          <aside>
+            <div class="reading-card">
+              <h2>閱讀建議</h2>
+              <p>
+                先掌握初始化鏈，再理解 request 如何消費同一份
+                runtime，最後用共用核心圖確認兩條線的交會點。
+              </p>
+              <div class="reading-list">
+                <div class="reading-step">
+                  <strong>01</strong>
+                  <span
+                    >確認 <code>build_app_container()</code> 與
+                    <code>create_app()</code> 的分工。</span
+                  >
+                </div>
+                <div class="reading-step">
+                  <strong>02</strong>
+                  <span
+                    >追 POST /api/agent/run 從 session 保證走到 SSE
+                    envelope。</span
+                  >
+                </div>
+                <div class="reading-step">
+                  <strong>03</strong>
+                  <span
+                    >用共用核心圖確認 container、dependencies 與 runner
+                    的交會。</span
+                  >
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ══════════ NAV ══════════ -->
+      <nav class="nav-bar" aria-label="頁面段落導覽">
+        <span class="nav-label">跳至</span>
+        <a class="nav-link" href="#modules"><span>M</span>模組總覽</a>
+        <a class="nav-link" href="#legend"><span>L</span>圖例</a>
+        <a class="nav-link" href="#scenario-1"
+          ><span>1</span>情境一：啟動初始化</a
+        >
+        <a class="nav-link" href="#scenario-2"><span>2</span>情境二：run API</a>
+        <a class="nav-link" href="#shared"><span>3</span>共用核心</a>
+        <a class="nav-link" href="#error-paths"><span>E</span>錯誤路徑</a>
+      </nav>
+
+      <!-- ══════════ MODULE TABLE ══════════ -->
+      <section id="modules" class="panel section-anchor layout">
+        <div class="section-head">
+          <div>
+            <div class="section-kicker">Module Overview</div>
+            <h2>app/ 目錄角色總覽</h2>
+          </div>
+          <p>六個子模組分別負責不同職責層，理解各自邊界有助於快速定位問題。</p>
+        </div>
+        <div class="module-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>模組</th>
+                <th>主要檔案</th>
+                <th>職責</th>
+                <th>色彩</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>API transport 層</strong></td>
+                <td>
+                  <code>api/main.py</code><br />
+                  <code>api/routes/run.py</code><br />
+                  <code>api/routes/sessions.py</code><br />
+                  <code>api/schemas.py</code>
+                </td>
+                <td>
+                  定義 FastAPI app、HTTP route、Pydantic request schema、SSE
+                  輸出
+                </td>
+                <td>
+                  <span class="badge badge-blue">Blue — API/Transport</span>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>依賴 / 容器</strong></td>
+                <td>
+                  <code>api/dependencies.py</code><br />
+                  <code>core/container.py</code><br />
+                  <code>core/config.py</code><br />
+                  <code>app_runtime.py</code>
+                </td>
+                <td>
+                  載入 runtime 設定、建立 container、提供 route 可取用的依賴
+                </td>
+                <td>
+                  <span class="badge badge-accent">Amber — 初始化/組裝</span>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Agent runtime</strong></td>
+                <td><code>agent.py</code></td>
+                <td>建立 ADK Agent、載入 prompt、掛入工具</td>
+                <td>
+                  <span class="badge badge-rose">Rose — ADK Runtime</span>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Application 層</strong></td>
+                <td>
+                  <code>application/agent_run_service.py</code><br />
+                  <code>application/session_facade.py</code><br />
+                  <code>application/health.py</code>
+                </td>
+                <td>將 route 需要的流程封裝成穩定的應用服務</td>
+                <td>
+                  <span class="badge badge-teal">Teal — Application</span>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Session / 狀態</strong></td>
+                <td>
+                  <code>api/session_service.py</code><br />
+                  <code>api/presenters/session_presenter.py</code><br />
+                  <code>domain/session_state.py</code><br />
+                  <code>tools/session_tools.py</code>
+                </td>
+                <td>
+                  建立/查詢 session、整理 public state、維護 ADK state key 契約
+                </td>
+                <td>
+                  <span class="badge badge-teal">Teal — Application</span>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Event / SSE 轉換</strong></td>
+                <td>
+                  <code>api/streaming.py</code><br />
+                  <code>api/mappers/adk_event_mapper.py</code>
+                </td>
+                <td>把 ADK event 轉成前端可消化的 SSE envelopes</td>
+                <td>
+                  <span class="badge badge-blue">Blue — API/Transport</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ══════════ LEGEND ══════════ -->
+      <section id="legend" class="panel section-anchor layout">
+        <div class="section-head">
+          <div>
+            <div class="section-kicker">Legend</div>
+            <h2>圖例</h2>
+          </div>
+          <p>四種色彩對應不同責任層；箭頭表示主要控制流或資料流方向。</p>
+        </div>
+        <div class="legend">
+          <div class="legend-item">
+            <span
+              class="legend-swatch"
+              style="
+                background: var(--accent-soft);
+                border: 1px solid rgba(217, 119, 6, 0.45);
+              "
+            ></span>
+            初始化與組裝（Amber）
+          </div>
+          <div class="legend-item">
+            <span
+              class="legend-swatch"
+              style="
+                background: var(--blue-soft);
+                border: 1px solid rgba(69, 123, 157, 0.45);
+              "
+            ></span>
+            API / Transport（Blue）
+          </div>
+          <div class="legend-item">
+            <span
+              class="legend-swatch"
+              style="
+                background: var(--teal-soft);
+                border: 1px solid rgba(42, 157, 143, 0.45);
+              "
+            ></span>
+            Application / Session（Teal）
+          </div>
+          <div class="legend-item">
+            <span
+              class="legend-swatch"
+              style="
+                background: var(--rose-soft);
+                border: 1px solid rgba(185, 79, 109, 0.45);
+              "
+            ></span>
+            ADK Runtime / Tools（Rose）
+          </div>
+          <div class="legend-item">
+            <span
+              style="
+                font-family: var(--mono);
+                font-size: 0.82rem;
+                color: var(--muted);
+              "
+              >- - -</span
+            >
+            間接依賴（虛線箭頭）
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════ SCENARIO 1 ══════════ -->
+      <section id="scenario-1" class="panel section-anchor layout">
+        <div class="section-head">
+          <div>
+            <div class="section-kicker">Scenario 01</div>
+            <h2>情境一：FastAPI 啟動到完成初始化</h2>
+          </div>
+          <p>
+            啟動的真正控制中心是 <code>build_app_container()</code>，負責把
+            runtime graph 建齊； <code>create_app()</code> 把 transport
+            組起來，再透過 <code>lifespan()</code> 把 container 掛進
+            <code>app.state</code>。
+          </p>
+        </div>
+
+        <!-- 流程圖 -->
+        <div class="diagram-card">
+          <h3>啟動初始化流程圖</h3>
+          <p>
+            從 uvicorn 載入 <code>app.api.main:app</code> 到 AppContainer
+            完整就緒、路由註冊完成。
+          </p>
+          <div class="diagram-hint">
+            重點在啟動期控制權如何一路收斂到 AppContainer，然後透過 lifespan
+            掛進 FastAPI。
+          </div>
+          <div class="diagram-frame">
+            <svg
+              viewBox="0 0 860 1140"
+              role="img"
+              aria-label="FastAPI 啟動初始化流程"
+            >
+              <defs>
+                <marker
+                  id="arr1"
+                  viewBox="0 0 10 10"
+                  refX="8"
+                  refY="5"
+                  markerWidth="7"
+                  markerHeight="7"
+                  orient="auto-start-reverse"
+                >
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#264653" />
+                </marker>
+                <filter id="sh1" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow
+                    dx="0"
+                    dy="8"
+                    stdDeviation="9"
+                    flood-color="rgba(38,70,83,0.13)"
+                  />
+                </filter>
+              </defs>
+
+              <rect
+                x="30"
+                y="24"
+                width="800"
+                height="1092"
+                rx="26"
+                fill="#fffaf3"
+                stroke="rgba(38,70,83,0.08)"
+              />
+
+              <!-- Node 1: uvicorn -->
+              <rect
+                x="255"
+                y="52"
+                width="350"
+                height="76"
+                rx="20"
+                fill="#fff0da"
+                stroke="#d97706"
+                filter="url(#sh1)"
+              />
+              <text
+                x="430"
+                y="84"
+                text-anchor="middle"
+                font-size="22"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                uvicorn / ASGI server
+              </text>
+              <text
+                x="430"
+                y="108"
+                text-anchor="middle"
+                font-size="14"
+                fill="#5e6573"
+              >
+                載入 app.api.main:app（Makefile: make run-fastapi）
+              </text>
+
+              <line
+                x1="430"
+                y1="128"
+                x2="430"
+                y2="170"
+                stroke="#264653"
+                stroke-width="2.5"
+                marker-end="url(#arr1)"
+              />
+
+              <!-- Node 2: main.py -->
+              <rect
+                x="145"
+                y="170"
+                width="570"
+                height="96"
+                rx="20"
+                fill="#eef6fb"
+                stroke="#457b9d"
+                filter="url(#sh1)"
+              />
+              <text
+                x="430"
+                y="204"
+                text-anchor="middle"
+                font-size="21"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                app/api/main.py — create_app()
+              </text>
+              <text
+                x="430"
+                y="228"
+                text-anchor="middle"
+                font-size="14"
+                fill="#5e6573"
+              >
+                module import 階段直接執行，不等第一個 request
+              </text>
+              <text
+                x="430"
+                y="248"
+                text-anchor="middle"
+                font-size="13"
+                fill="#5e6573"
+              >
+                若沒有外部注入 container，自行呼叫 build_app_container()
+              </text>
+
+              <line
+                x1="430"
+                y1="266"
+                x2="430"
+                y2="308"
+                stroke="#264653"
+                stroke-width="2.5"
+                marker-end="url(#arr1)"
+              />
+
+              <!-- Node 3: build_app_container -->
+              <rect
+                x="195"
+                y="308"
+                width="470"
+                height="82"
+                rx="20"
+                fill="#fff0da"
+                stroke="#d97706"
+                filter="url(#sh1)"
+              />
+              <text
+                x="430"
+                y="344"
+                text-anchor="middle"
+                font-size="22"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                build_app_container()
+              </text>
+              <text
+                x="430"
+                y="368"
+                text-anchor="middle"
+                font-size="14"
+                fill="#5e6573"
+              >
+                初始化鏈控制中心（app/core/container.py）
+              </text>
+
+              <line
+                x1="430"
+                y1="390"
+                x2="430"
+                y2="432"
+                stroke="#264653"
+                stroke-width="2.5"
+                marker-end="url(#arr1)"
+              />
+
+              <!-- Fan-out: config / agent / session service -->
+              <!-- config -->
+              <rect
+                x="56"
+                y="432"
+                width="200"
+                height="138"
+                rx="18"
+                fill="#fff0da"
+                stroke="#d97706"
+              />
+              <text
+                x="156"
+                y="468"
+                text-anchor="middle"
+                font-size="19"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                AppRuntimeConfig
+              </text>
+              <text
+                x="156"
+                y="492"
+                text-anchor="middle"
+                font-size="12"
+                fill="#5e6573"
+              >
+                app/core/config.py
+              </text>
+              <text
+                x="156"
+                y="510"
+                text-anchor="middle"
+                font-size="12"
+                fill="#5e6573"
+              >
+                load_runtime_config()
+              </text>
+              <text
+                x="156"
+                y="528"
+                text-anchor="middle"
+                font-size="11"
+                fill="#7e8694"
+              >
+                app_name / model / DB
+              </text>
+              <text
+                x="156"
+                y="545"
+                text-anchor="middle"
+                font-size="11"
+                fill="#7e8694"
+              >
+                toolbox_url / cors / port
+              </text>
+
+              <!-- agent -->
+              <rect
+                x="330"
+                y="432"
+                width="200"
+                height="138"
+                rx="18"
+                fill="#fce9ee"
+                stroke="#b94f6d"
+              />
+              <text
+                x="430"
+                y="468"
+                text-anchor="middle"
+                font-size="19"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                ADK Agent
+              </text>
+              <text
+                x="430"
+                y="492"
+                text-anchor="middle"
+                font-size="12"
+                fill="#5e6573"
+              >
+                app/agent.py
+              </text>
+              <text
+                x="430"
+                y="510"
+                text-anchor="middle"
+                font-size="12"
+                fill="#5e6573"
+              >
+                create_agent(config)
+              </text>
+              <text
+                x="430"
+                y="528"
+                text-anchor="middle"
+                font-size="11"
+                fill="#7e8694"
+              >
+                load_prompt() + ToolboxToolset
+              </text>
+              <text
+                x="430"
+                y="545"
+                text-anchor="middle"
+                font-size="11"
+                fill="#7e8694"
+              >
+                session_tools + MCP toolbox
+              </text>
+
+              <!-- session service -->
+              <rect
+                x="604"
+                y="432"
+                width="200"
+                height="138"
+                rx="18"
+                fill="#e7f6f3"
+                stroke="#2a9d8f"
+              />
+              <text
+                x="704"
+                y="468"
+                text-anchor="middle"
+                font-size="19"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                SessionService
+              </text>
+              <text
+                x="704"
+                y="492"
+                text-anchor="middle"
+                font-size="12"
+                fill="#5e6573"
+              >
+                app/core/container.py
+              </text>
+              <text
+                x="704"
+                y="510"
+                text-anchor="middle"
+                font-size="12"
+                fill="#5e6573"
+              >
+                create_session_service()
+              </text>
+              <text
+                x="704"
+                y="528"
+                text-anchor="middle"
+                font-size="11"
+                fill="#7e8694"
+              >
+                SQLite or Database backend
+              </text>
+              <text
+                x="704"
+                y="545"
+                text-anchor="middle"
+                font-size="11"
+                fill="#7e8694"
+              >
+                URI normalize → db path
+              </text>
+
+              <!-- arrows to fan-out -->
+              <line
+                x1="350"
+                y1="410"
+                x2="156"
+                y2="432"
+                stroke="#264653"
+                stroke-width="2"
+                marker-end="url(#arr1)"
+              />
+              <line
+                x1="430"
+                y1="410"
+                x2="430"
+                y2="432"
+                stroke="#264653"
+                stroke-width="2"
+                marker-end="url(#arr1)"
+              />
+              <line
+                x1="510"
+                y1="410"
+                x2="704"
+                y2="432"
+                stroke="#264653"
+                stroke-width="2"
+                marker-end="url(#arr1)"
+              />
+
+              <!-- arrows to runner -->
+              <line
+                x1="156"
+                y1="570"
+                x2="156"
+                y2="622"
+                stroke="#264653"
+                stroke-width="2"
+                marker-end="url(#arr1)"
+              />
+              <line
+                x1="430"
+                y1="570"
+                x2="430"
+                y2="622"
+                stroke="#264653"
+                stroke-width="2"
+                marker-end="url(#arr1)"
+              />
+              <line
+                x1="704"
+                y1="570"
+                x2="704"
+                y2="622"
+                stroke="#264653"
+                stroke-width="2"
+                marker-end="url(#arr1)"
+              />
+
+              <!-- Node: Runner -->
+              <rect
+                x="195"
+                y="622"
+                width="470"
+                height="84"
+                rx="20"
+                fill="#fce9ee"
+                stroke="#b94f6d"
+                filter="url(#sh1)"
+              />
+              <text
+                x="430"
+                y="657"
+                text-anchor="middle"
+                font-size="22"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                create_runner(...) → ADK Runner
+              </text>
+              <text
+                x="430"
+                y="681"
+                text-anchor="middle"
+                font-size="14"
+                fill="#5e6573"
+              >
+                app_name + agent + session_service → Runner（每次 run_async()
+                共用）
+              </text>
+
+              <line
+                x1="430"
+                y1="706"
+                x2="430"
+                y2="748"
+                stroke="#264653"
+                stroke-width="2.5"
+                marker-end="url(#arr1)"
+              />
+
+              <!-- Node: AppContainer -->
+              <rect
+                x="175"
+                y="748"
+                width="510"
+                height="86"
+                rx="20"
+                fill="#fff0da"
+                stroke="#d97706"
+                filter="url(#sh1)"
+              />
+              <text
+                x="430"
+                y="783"
+                text-anchor="middle"
+                font-size="22"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                AppContainer（不可變）
+              </text>
+              <text
+                x="430"
+                y="807"
+                text-anchor="middle"
+                font-size="14"
+                fill="#5e6573"
+              >
+                config / agent / session_service / runner 封裝完成
+              </text>
+
+              <line
+                x1="430"
+                y1="834"
+                x2="430"
+                y2="874"
+                stroke="#264653"
+                stroke-width="2.5"
+                marker-end="url(#arr1)"
+              />
+
+              <!-- create_app fans -->
+              <rect
+                x="56"
+                y="874"
+                width="210"
+                height="76"
+                rx="18"
+                fill="#eef6fb"
+                stroke="#457b9d"
+              />
+              <text
+                x="161"
+                y="906"
+                text-anchor="middle"
+                font-size="17"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                lifespan()
+              </text>
+              <text
+                x="161"
+                y="928"
+                text-anchor="middle"
+                font-size="13"
+                fill="#5e6573"
+              >
+                app.state.container ← AppContainer
+              </text>
+
+              <rect
+                x="324"
+                y="874"
+                width="212"
+                height="76"
+                rx="18"
+                fill="#eef6fb"
+                stroke="#457b9d"
+              />
+              <text
+                x="430"
+                y="906"
+                text-anchor="middle"
+                font-size="17"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                include_router()
+              </text>
+              <text
+                x="430"
+                y="928"
+                text-anchor="middle"
+                font-size="13"
+                fill="#5e6573"
+              >
+                sessions / run / health routes
+              </text>
+
+              <rect
+                x="594"
+                y="874"
+                width="210"
+                height="76"
+                rx="18"
+                fill="#e7f6f3"
+                stroke="#2a9d8f"
+              />
+              <text
+                x="699"
+                y="906"
+                text-anchor="middle"
+                font-size="17"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                CORSMiddleware
+              </text>
+              <text
+                x="699"
+                y="928"
+                text-anchor="middle"
+                font-size="13"
+                fill="#5e6573"
+              >
+                cors_allow_origins from config
+              </text>
+
+              <line
+                x1="330"
+                y1="855"
+                x2="161"
+                y2="874"
+                stroke="#264653"
+                stroke-width="2"
+                marker-end="url(#arr1)"
+              />
+              <line
+                x1="430"
+                y1="855"
+                x2="430"
+                y2="874"
+                stroke="#264653"
+                stroke-width="2"
+                marker-end="url(#arr1)"
+              />
+              <line
+                x1="530"
+                y1="855"
+                x2="699"
+                y2="874"
+                stroke="#264653"
+                stroke-width="2"
+                marker-end="url(#arr1)"
+              />
+
+              <!-- Node: dependencies.py -->
+              <rect
+                x="175"
+                y="990"
+                width="510"
+                height="82"
+                rx="20"
+                fill="#e7f6f3"
+                stroke="#2a9d8f"
+                filter="url(#sh1)"
+              />
+              <text
+                x="430"
+                y="1025"
+                text-anchor="middle"
+                font-size="20"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                api/dependencies.py — get_container()
+              </text>
+              <text
+                x="430"
+                y="1049"
+                text-anchor="middle"
+                font-size="13"
+                fill="#5e6573"
+              >
+                request 期：request.app.state.container｜測試
+                fallback：lru_cache cached container
+              </text>
+
+              <line
+                x1="161"
+                y1="950"
+                x2="161"
+                y2="1070"
+                stroke="#264653"
+                stroke-width="1.5"
+                stroke-dasharray="6 6"
+              />
+              <line
+                x1="161"
+                y1="1070"
+                x2="430"
+                y2="1070"
+                stroke="#264653"
+                stroke-width="1.5"
+                stroke-dasharray="6 6"
+                marker-end="url(#arr1)"
+              />
+            </svg>
+          </div>
+        </div>
+
+        <!-- 詳細步驟 -->
+        <div style="margin-top: 26px">
+          <h3
+            style="
+              font-size: 1.08rem;
+              letter-spacing: -0.02em;
+              margin-bottom: 16px;
+            "
+          >
+            逐步說明（共 9 步）
+          </h3>
+          <div class="step-list">
+            <div class="step-item">
+              <div class="step-num step-num-accent">01</div>
+              <div class="step-body">
+                <strong>ASGI server 載入入口</strong>
+                <p>
+                  執行 <code>uv run uvicorn app.api.main:app</code>。Python
+                  import <code>app/api/main.py</code> 時，module 最下方的
+                  <code>app = create_app()</code> 立刻執行，容器建立不等第一個
+                  request。
+                </p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num step-num-accent">02</div>
+              <div class="step-body">
+                <strong>讀取 runtime 設定</strong>
+                <p>
+                  <code>load_runtime_config()</code
+                  >（<code>app/core/config.py</code>）從環境變數組出
+                  <code>AppRuntimeConfig</code>，包括
+                  <code>app_name</code
+                  >、<code>model_name</code>、<code>session_db_uri</code>、<code>toolbox_server_url</code>、<code
+                    >cors_allow_origins</code
+                  >
+                  等。這份設定是整個初始化鏈的共同輸入。
+                </p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num step-num-accent">03</div>
+              <div class="step-body">
+                <strong>建立 ADK Agent</strong>
+                <p>
+                  <code>create_agent(config)</code
+                  >（<code>app/agent.py</code>）做三件事：讀取
+                  <code>app/prompts/insurance_agent_prompt.txt</code>、建立
+                  <code>ToolboxToolset(MCP)</code>、組裝
+                  <code>Agent</code>。Agent 掛入
+                  <code>get_user_profile_snapshot</code
+                  >、<code>save_user_profile</code>、<code>save_last_recommendation</code>、<code
+                    >clear_last_recommendation</code
+                  >
+                  四個 session tools，以及外部 MCP toolbox。
+                </p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num step-num-accent">04</div>
+              <div class="step-body">
+                <strong>建立 SessionService</strong>
+                <p>
+                  <code>create_session_service(config)</code> 依
+                  <code>session_db_uri</code> scheme 決定後端：<code
+                    >sqlite://</code
+                  >
+                  → <code>SqliteSessionService</code>，否則 →
+                  <code>DatabaseSessionService</code>。SQLite 路徑先經
+                  <code>_normalize_sqlite_db_path()</code> 處理。
+                </p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num step-num-accent">05</div>
+              <div class="step-body">
+                <strong>建立 ADK Runner</strong>
+                <p>
+                  <code>create_runner(config, agent, session_service)</code>
+                  初始化 <code>Runner</code>（<code
+                    >app_name + agent + session_service</code
+                  >）。後續每次 <code>run_async()</code> 都使用這同一個 Runner
+                  執行。
+                </p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num step-num-accent">06</div>
+              <div class="step-body">
+                <strong>封裝成 AppContainer</strong>
+                <p>
+                  <code>build_app_container()</code> 把上述元件組成不可變的
+                  <code>AppContainer</code>（<code
+                    >config / agent / session_service / runner</code
+                  >），route 層只需拿 container，無需了解各元件如何建立。
+                </p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num step-num-blue">07</div>
+              <div class="step-body">
+                <strong>建立 FastAPI app 本體</strong>
+                <p>
+                  <code>create_app()</code> 宣告
+                  <code>lifespan()</code>（啟動時執行
+                  <code>app.state.container = app_container</code>），建立
+                  <code>FastAPI(...)</code>，加入
+                  <code>CORSMiddleware</code>，宣告 <code>/healthz</code> 與
+                  <code>/readyz</code>，最後
+                  <code>include_router(sessions)</code
+                  >、<code>include_router(run)</code>。
+                </p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num step-num-blue">08</div>
+              <div class="step-body">
+                <strong>Health / Readiness 端點</strong>
+                <p>
+                  <code>/healthz</code> 只回報 app 存活；<code>/readyz</code>
+                  透過 <code>ReadinessService.collect_errors()</code> 實際檢查
+                  <code>session_service</code> 是否可取得、<code
+                    >toolbox_server_url</code
+                  >
+                  是否可連通。有錯則 503。
+                </p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num step-num-blue">09</div>
+              <div class="step-body">
+                <strong>Request 期依賴解析</strong>
+                <p>
+                  <code>get_container(request)</code
+                  >（<code>api/dependencies.py</code>）有兩條路徑：有 request →
+                  <code>request.app.state.container</code>；無
+                  request（測試情境）→ <code>lru_cache</code> cached
+                  container。<code>get_runner()</code>、<code>get_agent()</code>、<code
+                    >get_session_service()</code
+                  >
+                  都從 container 解構而來。
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="caption-grid" style="margin-top: 20px">
+          <div class="caption">
+            <strong>控制中心</strong>
+            <span
+              ><code>build_app_container()</code> 決定 runtime graph；<code
+                >create_app()</code
+              >
+              只負責把它接進 FastAPI，兩者職責明確分離。</span
+            >
+          </div>
+          <div class="caption">
+            <strong>生命週期掛點</strong>
+            <span
+              ><code>lifespan()</code> 是把 container 放進
+              <code>app.state</code> 的唯一時機，確保 request 期不必重建任何
+              runtime 元件。</span
+            >
+          </div>
+          <div class="caption">
+            <strong>依賴回收策略</strong>
+            <span
+              ><code>dependencies.py</code> 的 fallback（lru_cache）讓測試與非
+              request 情境仍可工作，不需要 mock 整個 FastAPI stack。</span
+            >
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════ SCENARIO 2 ══════════ -->
+      <section id="scenario-2" class="panel section-anchor layout">
+        <div class="section-head">
+          <div>
+            <div class="section-kicker">Scenario 02</div>
+            <h2>情境二：POST /api/agent/run 到 SSE 回傳</h2>
+          </div>
+          <p>
+            route 本身只負責 HTTP 驗證與 SSE 組裝；真正的流程控制在
+            <code>AgentRunService.stream()</code>，轉譯工作在
+            <code>adk_event_mapper</code>。
+          </p>
+        </div>
+
+        <!-- Request/Response contract -->
+        <div
+          style="
+            margin-bottom: 20px;
+            padding: 18px 20px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(38, 70, 83, 0.09);
+          "
+        >
+          <strong style="font-size: 0.95rem">Request / Response 契約</strong>
+          <p
+            style="
+              margin-top: 10px;
+              color: var(--muted-strong);
+              font-size: 0.91rem;
+              line-height: 1.74;
+            "
+          >
+            <code>AgentRunRequest</code
+            >（<code>api/schemas.py</code>）定義三個欄位：<code
+              >prompt: str</code
+            >、<code>sessionId: str</code>、<code
+              >sessionState: dict[str, str] = {}</code
+            >。 型別不符合 FastAPI 直接回 422，不進 route handler。 Response 是
+            <code>text/event-stream</code>，每個 frame 格式為
+            <code>data: &lt;json&gt;\n\n</code>。
+          </p>
+        </div>
+
+        <!-- 流程圖 -->
+        <div class="diagram-card">
+          <h3>run API 執行流程圖</h3>
+          <p>
+            從 Client 送出 POST 到 StreamingResponse 持續輸出 SSE 的完整路徑。
+          </p>
+          <div class="diagram-hint">
+            重點在三層協作：route（HTTP/前置驗證）→ AgentRunService（ADK 執行與
+            stream 生命週期）→ adk_event_mapper（event 轉 envelope）。
+          </div>
+          <div class="diagram-frame">
+            <svg
+              viewBox="0 0 900 1280"
+              role="img"
+              aria-label="POST run API to SSE response flow"
+            >
+              <defs>
+                <marker
+                  id="arr2"
+                  viewBox="0 0 10 10"
+                  refX="8"
+                  refY="5"
+                  markerWidth="7"
+                  markerHeight="7"
+                  orient="auto-start-reverse"
+                >
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#264653" />
+                </marker>
+                <filter id="sh2" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow
+                    dx="0"
+                    dy="8"
+                    stdDeviation="9"
+                    flood-color="rgba(38,70,83,0.13)"
+                  />
+                </filter>
+              </defs>
+
+              <rect
+                x="28"
+                y="22"
+                width="844"
+                height="1236"
+                rx="26"
+                fill="#fffaf3"
+                stroke="rgba(38,70,83,0.08)"
+              />
+
+              <!-- Client + Route -->
+              <rect
+                x="64"
+                y="52"
+                width="180"
+                height="82"
+                rx="18"
+                fill="#eef6fb"
+                stroke="#457b9d"
+                filter="url(#sh2)"
+              />
+              <text
+                x="154"
+                y="88"
+                text-anchor="middle"
+                font-size="20"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                Client
+              </text>
+              <text
+                x="154"
+                y="112"
+                text-anchor="middle"
+                font-size="13"
+                fill="#5e6573"
+              >
+                POST /api/agent/run
+              </text>
+
+              <rect
+                x="300"
+                y="52"
+                width="480"
+                height="82"
+                rx="18"
+                fill="#eef6fb"
+                stroke="#457b9d"
+                filter="url(#sh2)"
+              />
+              <text
+                x="540"
+                y="88"
+                text-anchor="middle"
+                font-size="20"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                api/routes/run.py — run_agent()
+              </text>
+              <text
+                x="540"
+                y="112"
+                text-anchor="middle"
+                font-size="13"
+                fill="#5e6573"
+              >
+                AgentRunRequest 驗證 → trim → 400/422/502 前置防線
+              </text>
+
+              <line
+                x1="244"
+                y1="93"
+                x2="300"
+                y2="93"
+                stroke="#264653"
+                stroke-width="2.5"
+                marker-end="url(#arr2)"
+              />
+              <line
+                x1="540"
+                y1="134"
+                x2="540"
+                y2="174"
+                stroke="#264653"
+                stroke-width="2.5"
+                marker-end="url(#arr2)"
+              />
+
+              <!-- ensure session -->
+              <rect
+                x="180"
+                y="174"
+                width="400"
+                height="86"
+                rx="18"
+                fill="#e7f6f3"
+                stroke="#2a9d8f"
+                filter="url(#sh2)"
+              />
+              <text
+                x="380"
+                y="210"
+                text-anchor="middle"
+                font-size="19"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                SessionFacade.ensure_session()
+              </text>
+              <text
+                x="380"
+                y="234"
+                text-anchor="middle"
+                font-size="13"
+                fill="#5e6573"
+              >
+                create_session_if_missing() — 確保 session 先存在，失敗 → 502
+              </text>
+
+              <line
+                x1="380"
+                y1="260"
+                x2="380"
+                y2="302"
+                stroke="#264653"
+                stroke-width="2.5"
+                marker-end="url(#arr2)"
+              />
+
+              <!-- build meta + start stream -->
+              <rect
+                x="120"
+                y="302"
+                width="520"
+                height="96"
+                rx="18"
+                fill="#e7f6f3"
+                stroke="#2a9d8f"
+                filter="url(#sh2)"
+              />
+              <text
+                x="380"
+                y="336"
+                text-anchor="middle"
+                font-size="19"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                AgentRunService.stream()
+              </text>
+              <text
+                x="380"
+                y="360"
+                text-anchor="middle"
+                font-size="13"
+                fill="#5e6573"
+              >
+                立即 yield build_meta_envelope()，初始化 sequence / current_text
+                / merged_state
+              </text>
+              <text
+                x="380"
+                y="380"
+                text-anchor="middle"
+                font-size="12"
+                fill="#7e8694"
+              >
+                呼叫 iter_run_events(runner, user_id, session_id, prompt,
+                state_delta)
+              </text>
+
+              <line
+                x1="380"
+                y1="398"
+                x2="380"
+                y2="442"
+                stroke="#264653"
+                stroke-width="2.5"
+                marker-end="url(#arr2)"
+              />
+
+              <!-- iter_run_events -->
+              <rect
+                x="120"
+                y="442"
+                width="520"
+                height="84"
+                rx="18"
+                fill="#fce9ee"
+                stroke="#b94f6d"
+                filter="url(#sh2)"
+              />
+              <text
+                x="380"
+                y="476"
+                text-anchor="middle"
+                font-size="19"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                iter_run_events() / runner.run_async()
+              </text>
+              <text
+                x="380"
+                y="500"
+                text-anchor="middle"
+                font-size="13"
+                fill="#5e6573"
+              >
+                build_user_message_content(prompt) → Content(role="user")，帶入
+                state_delta
+              </text>
+
+              <line
+                x1="380"
+                y1="526"
+                x2="380"
+                y2="570"
+                stroke="#264653"
+                stroke-width="2.5"
+                marker-end="url(#arr2)"
+              />
+
+              <!-- ADK runtime fan -->
+              <rect
+                x="54"
+                y="570"
+                width="220"
+                height="136"
+                rx="16"
+                fill="#fce9ee"
+                stroke="#b94f6d"
+              />
+              <text
+                x="164"
+                y="607"
+                text-anchor="middle"
+                font-size="18"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                ADK Agent
+              </text>
+              <text
+                x="164"
+                y="629"
+                text-anchor="middle"
+                font-size="12"
+                fill="#5e6573"
+              >
+                prompt 推理
+              </text>
+              <text
+                x="164"
+                y="649"
+                text-anchor="middle"
+                font-size="12"
+                fill="#5e6573"
+              >
+                決定是否調用工具
+              </text>
+              <text
+                x="164"
+                y="669"
+                text-anchor="middle"
+                font-size="12"
+                fill="#5e6573"
+              >
+                輸出 partial / final event
+              </text>
+              <text
+                x="164"
+                y="689"
+                text-anchor="middle"
+                font-size="11"
+                fill="#7e8694"
+              >
+                insurance_agent_prompt.txt
+              </text>
+
+              <rect
+                x="310"
+                y="570"
+                width="220"
+                height="136"
+                rx="16"
+                fill="#fce9ee"
+                stroke="#b94f6d"
+              />
+              <text
+                x="420"
+                y="607"
+                text-anchor="middle"
+                font-size="18"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                session_tools.py
+              </text>
+              <text
+                x="420"
+                y="629"
+                text-anchor="middle"
+                font-size="12"
+                fill="#5e6573"
+              >
+                get_user_profile_snapshot
+              </text>
+              <text
+                x="420"
+                y="649"
+                text-anchor="middle"
+                font-size="12"
+                fill="#5e6573"
+              >
+                save_user_profile
+              </text>
+              <text
+                x="420"
+                y="669"
+                text-anchor="middle"
+                font-size="12"
+                fill="#5e6573"
+              >
+                save_last_recommendation
+              </text>
+              <text
+                x="420"
+                y="689"
+                text-anchor="middle"
+                font-size="11"
+                fill="#7e8694"
+              >
+                讀寫 ADK session state
+              </text>
+
+              <rect
+                x="566"
+                y="570"
+                width="220"
+                height="136"
+                rx="16"
+                fill="#fce9ee"
+                stroke="#b94f6d"
+              />
+              <text
+                x="676"
+                y="607"
+                text-anchor="middle"
+                font-size="18"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                Toolbox MCP
+              </text>
+              <text
+                x="676"
+                y="629"
+                text-anchor="middle"
+                font-size="12"
+                fill="#5e6573"
+              >
+                外部工具與資料查詢
+              </text>
+              <text
+                x="676"
+                y="649"
+                text-anchor="middle"
+                font-size="12"
+                fill="#5e6573"
+              >
+                透過 ToolboxToolset 呼叫
+              </text>
+              <text
+                x="676"
+                y="669"
+                text-anchor="middle"
+                font-size="12"
+                fill="#5e6573"
+              >
+                返回 function_response
+              </text>
+              <text
+                x="676"
+                y="689"
+                text-anchor="middle"
+                font-size="11"
+                fill="#7e8694"
+              >
+                db/tools.yaml 定義工具
+              </text>
+
+              <line
+                x1="270"
+                y1="548"
+                x2="164"
+                y2="570"
+                stroke="#264653"
+                stroke-width="2"
+                marker-end="url(#arr2)"
+              />
+              <line
+                x1="380"
+                y1="548"
+                x2="380"
+                y2="570"
+                stroke="#264653"
+                stroke-width="2"
+                marker-end="url(#arr2)"
+              />
+              <line
+                x1="490"
+                y1="548"
+                x2="676"
+                y2="570"
+                stroke="#264653"
+                stroke-width="2"
+                marker-end="url(#arr2)"
+              />
+
+              <!-- lines to mapper -->
+              <line
+                x1="164"
+                y1="706"
+                x2="164"
+                y2="764"
+                stroke="#264653"
+                stroke-width="2"
+                marker-end="url(#arr2)"
+              />
+              <line
+                x1="420"
+                y1="706"
+                x2="420"
+                y2="764"
+                stroke="#264653"
+                stroke-width="2"
+                marker-end="url(#arr2)"
+              />
+              <line
+                x1="676"
+                y1="706"
+                x2="676"
+                y2="764"
+                stroke="#264653"
+                stroke-width="2"
+                marker-end="url(#arr2)"
+              />
+
+              <!-- mapper -->
+              <rect
+                x="104"
+                y="764"
+                width="592"
+                height="106"
+                rx="18"
+                fill="#eef6fb"
+                stroke="#457b9d"
+                filter="url(#sh2)"
+              />
+              <text
+                x="400"
+                y="798"
+                text-anchor="middle"
+                font-size="19"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                adk_event_mapper + merge_state_patches
+              </text>
+              <text
+                x="400"
+                y="822"
+                text-anchor="middle"
+                font-size="13"
+                fill="#5e6573"
+              >
+                is_echoed_user_input() 過濾 → map_adk_event_to_envelopes(event,
+                sequence)
+              </text>
+              <text
+                x="400"
+                y="844"
+                text-anchor="middle"
+                font-size="12"
+                fill="#7e8694"
+              >
+                function_call→tool-call｜function_response→tool-result｜partial→stream+append｜final→agent+replace｜state_delta→state
+                patch
+              </text>
+
+              <line
+                x1="400"
+                y1="870"
+                x2="400"
+                y2="912"
+                stroke="#264653"
+                stroke-width="2.5"
+                marker-end="url(#arr2)"
+              />
+
+              <!-- current_text + merged_state -->
+              <rect
+                x="104"
+                y="912"
+                width="592"
+                height="84"
+                rx="18"
+                fill="#e7f6f3"
+                stroke="#2a9d8f"
+                filter="url(#sh2)"
+              />
+              <text
+                x="400"
+                y="946"
+                text-anchor="middle"
+                font-size="19"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                維護 current_text / merged_state
+              </text>
+              <text
+                x="400"
+                y="970"
+                text-anchor="middle"
+                font-size="13"
+                fill="#5e6573"
+              >
+                message append/replace → current_text；state patch →
+                merged_state（每次 event 更新）
+              </text>
+
+              <line
+                x1="400"
+                y1="996"
+                x2="400"
+                y2="1038"
+                stroke="#264653"
+                stroke-width="2.5"
+                marker-end="url(#arr2)"
+              />
+
+              <!-- done envelope -->
+              <rect
+                x="104"
+                y="1038"
+                width="592"
+                height="96"
+                rx="18"
+                fill="#e7f6f3"
+                stroke="#2a9d8f"
+                filter="url(#sh2)"
+              />
+              <text
+                x="400"
+                y="1072"
+                text-anchor="middle"
+                font-size="19"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                SessionFacade.get_state() + build_done_envelope()
+              </text>
+              <text
+                x="400"
+                y="1096"
+                text-anchor="middle"
+                font-size="13"
+                fill="#5e6573"
+              >
+                重查 session storage（非僅 merged_state），build_public_state()
+                過濾 _ui_ 開頭 key
+              </text>
+              <text
+                x="400"
+                y="1116"
+                text-anchor="middle"
+                font-size="12"
+                fill="#7e8694"
+              >
+                fallback_state 合併，current_text 空時補預設訊息
+              </text>
+
+              <line
+                x1="400"
+                y1="1134"
+                x2="400"
+                y2="1176"
+                stroke="#264653"
+                stroke-width="2.5"
+                marker-end="url(#arr2)"
+              />
+
+              <!-- SSE output -->
+              <rect
+                x="192"
+                y="1176"
+                width="416"
+                height="64"
+                rx="18"
+                fill="#eef6fb"
+                stroke="#457b9d"
+                filter="url(#sh2)"
+              />
+              <text
+                x="400"
+                y="1203"
+                text-anchor="middle"
+                font-size="18"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                StreamingResponse + encode_sse_event()
+              </text>
+              <text
+                x="400"
+                y="1225"
+                text-anchor="middle"
+                font-size="13"
+                fill="#5e6573"
+              >
+                text/event-stream — data: &lt;json&gt;\n\n 持續輸出
+              </text>
+            </svg>
+          </div>
+        </div>
+
+        <!-- 詳細步驟 -->
+        <div style="margin-top: 26px">
+          <h3
+            style="
+              font-size: 1.08rem;
+              letter-spacing: -0.02em;
+              margin-bottom: 16px;
+            "
+          >
+            逐步說明（共 12 步）
+          </h3>
+          <div class="step-list">
+            <div class="step-item">
+              <div class="step-num step-num-blue">01</div>
+              <div class="step-body">
+                <strong>Route 進入點 — <code>run_agent()</code></strong>
+                <p>
+                  收到 POST 後，FastAPI 用
+                  <code>AgentRunRequest</code> 做第一層驗證（型別不符 →
+                  422）。Route 自行做第二層：<code>prompt.strip()</code> /
+                  <code>sessionId.strip()</code> 任一為空 → 回 HTTP 400
+                  <code>{"error": "prompt and sessionId are required"}</code>。
+                </p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num step-num-blue">02</div>
+              <div class="step-body">
+                <strong>取得 container 與 application services</strong>
+                <p>
+                  <code>get_container(request)</code> 取回 AppContainer，建出
+                  <code>SessionFacade</code> 與 <code>AgentRunService</code>。取
+                  runner 時會先嘗試 <code>get_runner(request)</code>，遇
+                  <code>TypeError</code> 則退回
+                  <code>get_runner()</code>（兼容測試 monkeypatch）。
+                </p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num step-num-teal">03</div>
+              <div class="step-body">
+                <strong>確保 session 存在</strong>
+                <p>
+                  <code
+                    >await run_service.ensure_session(session_id,
+                    payload.sessionState)</code
+                  >
+                  → <code>SessionFacade.ensure_session()</code> →
+                  <code>create_session_if_missing()</code>。先嘗試
+                  <code>get_session()</code>，若不存在則
+                  <code>create_session()</code> 並把
+                  <code>sessionState</code> 當初始 state 寫入。失敗 → HTTP 502
+                  JSON。
+                </p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num step-num-blue">04</div>
+              <div class="step-body">
+                <strong
+                  >建立 SSE generator 並送出 <code>meta</code> envelope</strong
+                >
+                <p>
+                  用 <code>payload.model_copy(update={...})</code> 建立 trim
+                  後新 payload，宣告 async generator
+                  <code>sse_generator()</code>，回傳
+                  <code>StreamingResponse(media_type="text/event-stream")</code
+                  >，headers 固定
+                  <code>Cache-Control: no-cache, no-transform</code>、<code
+                    >Connection: keep-alive</code
+                  >。
+                </p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num step-num-teal">05</div>
+              <div class="step-body">
+                <strong><code>AgentRunService.stream()</code> 啟動</strong>
+                <p>
+                  初始化 <code>sequence = 0</code>、<code
+                    >current_text = ""</code
+                  >、<code>merged_state = dict(request.sessionState)</code
+                  >，立刻 <code>yield build_meta_envelope()</code>（client
+                  一收到 SSE 就先看到 transport 說明，不需等 ADK 第一個
+                  event）。
+                </p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num step-num-teal">06</div>
+              <div class="step-body">
+                <strong>包裝 user prompt 成 ADK message</strong>
+                <p>
+                  <code
+                    >iter_run_events(runner, user_id, session_id, prompt,
+                    state_delta)</code
+                  >
+                  → <code>build_user_message_content(prompt)</code> 把字串包成
+                  <code>Content(role="user", parts=[Part(text=prompt)])</code
+                  >，再呼叫
+                  <code
+                    >runner.run_async(user_id, session_id, new_message,
+                    state_delta=sessionState or None)</code
+                  >。
+                </p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num step-num-accent">07</div>
+              <div class="step-body">
+                <strong>Runner 執行 Agent 與工具</strong>
+                <p>
+                  ADK Runner 執行
+                  <code>insurance_agent_prompt.txt</code> 推理。需要使用者
+                  profile → 呼叫 <code>session_tools.py</code>（<code
+                    >get_user_profile_snapshot</code
+                  >
+                  / <code>save_user_profile</code> /
+                  <code>save_last_recommendation</code> /
+                  <code>clear_last_recommendation</code>）直接讀寫 ADK
+                  state；需要外部資料 → 透過 <code>ToolboxToolset</code> 呼叫
+                  MCP server。
+                </p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num step-num-blue">08</div>
+              <div class="step-body">
+                <strong>過濾與映射 ADK events</strong>
+                <p>
+                  每收到一個 event：先
+                  <code>is_echoed_user_input(event, prompt)</code> 判斷是否為
+                  ADK 回吐原文（是 → skip），<code>sequence += 1</code>，<code
+                    >map_adk_event_to_envelopes(event, sequence)</code
+                  >
+                  轉成 envelope 陣列，<code
+                    >merge_state_patches(merged_state, envelopes)</code
+                  >
+                  同步更新 state。
+                </p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num step-num-blue">09</div>
+              <div class="step-body">
+                <strong>Envelope 類型對應</strong>
+                <p>
+                  <code>function_call</code> →
+                  <code>timeline(kind="tool-call")</code>；
+                  <code>function_response</code> →
+                  <code>timeline(kind="tool-result")</code>； partial text →
+                  <code>timeline(kind="stream")</code> +
+                  <code>message(mode="append")</code>； final text →
+                  <code>timeline(kind="agent")</code> +
+                  <code>message(mode="replace")</code>；
+                  <code>event.actions.state_delta</code> →
+                  <code>timeline(kind="state")</code> +
+                  <code>state(patch=...)</code>。
+                </p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num step-num-teal">10</div>
+              <div class="step-body">
+                <strong
+                  >維護 <code>current_text</code> 與
+                  <code>merged_state</code></strong
+                >
+                <p>
+                  <code>message(mode="append")</code> → 文字接在後面；<code
+                    >message(mode="replace")</code
+                  >
+                  → 整段覆蓋。<code>state(patch=...)</code> → 透過
+                  <code>merge_state_patches()</code> 合入
+                  <code>merged_state</code>。串流結束時可拿到最終文字與累積
+                  state。
+                </p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num step-num-teal">11</div>
+              <div class="step-body">
+                <strong>串流結束後補 <code>done</code> envelope</strong>
+                <p>
+                  ADK event stream 結束後，重新查 session storage（<code
+                    >SessionFacade.get_state()</code
+                  >
+                  → <code>get_session_state()</code> →
+                  <code>session_service.get_session()</code>），把
+                  <code>session.state</code> 丟進
+                  <code>build_public_state()</code> 過濾 <code>_ui_</code> 開頭
+                  key，再與 <code>fallback_state</code> 合併，產出
+                  <code>build_done_envelope(final_text, state)</code>。
+                </p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num step-num-blue">12</div>
+              <div class="step-body">
+                <strong>SSE 實際輸出格式</strong>
+                <p>
+                  每個 envelope 經 <code>encode_sse_event(envelope)</code> 轉成
+                  <code>data: &lt;json&gt;\n\n</code>。完整 envelope
+                  類型序列：<code>meta</code> → <code>timeline</code> /
+                  <code>message</code> / <code>state</code>（循環）→
+                  <code>done</code>（或 <code>error</code>）。
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Envelope 類型 -->
+        <div style="margin-top: 26px">
+          <h3
+            style="
+              font-size: 1.02rem;
+              letter-spacing: -0.02em;
+              margin-bottom: 14px;
+            "
+          >
+            SSE Envelope 類型說明
+          </h3>
+          <div class="envelope-grid">
+            <div class="envelope-item">
+              <strong>meta</strong
+              ><span>串流開始時第一個送出，描述 transport 資訊</span>
+            </div>
+            <div class="envelope-item">
+              <strong>timeline(kind="tool-call")</strong
+              ><span>Agent 呼叫工具時發出</span>
+            </div>
+            <div class="envelope-item">
+              <strong>timeline(kind="tool-result")</strong
+              ><span>工具回傳結果時發出</span>
+            </div>
+            <div class="envelope-item">
+              <strong>timeline(kind="stream")</strong
+              ><span>Agent 部分文字輸出</span>
+            </div>
+            <div class="envelope-item">
+              <strong>timeline(kind="agent")</strong
+              ><span>Agent 完整最終文字</span>
+            </div>
+            <div class="envelope-item">
+              <strong>timeline(kind="state")</strong
+              ><span>ADK state_delta 更新</span>
+            </div>
+            <div class="envelope-item">
+              <strong>message(mode="append")</strong><span>文字片段累加</span>
+            </div>
+            <div class="envelope-item">
+              <strong>message(mode="replace")</strong
+              ><span>整段最終文字取代</span>
+            </div>
+            <div class="envelope-item">
+              <strong>state(patch=…)</strong><span>session state 差分更新</span>
+            </div>
+            <div class="envelope-item">
+              <strong>done</strong
+              ><span>串流結束，帶最終文字與持久化 state</span>
+            </div>
+            <div class="envelope-item">
+              <strong>error</strong><span>ADK 執行中發生例外</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="caption-grid" style="margin-top: 20px">
+          <div class="caption">
+            <strong>前置保證</strong>
+            <span
+              >在任何 SSE 開始前，route 先 trim 輸入，並透過
+              <code>ensure_session()</code> 確保 session 存在，失敗立刻 502
+              JSON，不進入串流。</span
+            >
+          </div>
+          <div class="caption">
+            <strong>轉譯中心</strong>
+            <span
+              >把 ADK event 轉成前端可消化資料的核心是
+              <code>adk_event_mapper</code>，route 本身不做任何 event
+              解析。</span
+            >
+          </div>
+          <div class="caption">
+            <strong>收尾策略</strong>
+            <span
+              >結束時重查 session storage 而非信任記憶體
+              <code>merged_state</code>，確保 <code>done</code> envelope 的
+              state 接近實際持久化結果。</span
+            >
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════ SHARED CORE ══════════ -->
+      <section id="shared" class="panel section-anchor layout">
+        <div class="section-head">
+          <div>
+            <div class="section-kicker">Shared Core</div>
+            <h2>共用核心元件關係</h2>
+          </div>
+          <p>
+            兩個情境共用同一組 runtime 物件：情境一負責 build，情境二負責
+            consume。交會點是 AppContainer 與 <code>get_container()</code>。
+          </p>
+        </div>
+
+        <div class="diagram-card">
+          <h3>初始化鏈與執行鏈的交會點</h3>
+          <p>
+            虛線箭頭表示 request 期透過
+            <code>app.state</code> 間接取回容器的依賴路徑。
+          </p>
+          <div class="diagram-hint">
+            用這張圖對照前兩張，確認 build（情境一）與
+            consume（情境二）的交會點。
+          </div>
+          <div class="diagram-frame diagram-frame--wide">
+            <svg
+              viewBox="0 0 1260 590"
+              role="img"
+              aria-label="共用核心元件關係圖"
+            >
+              <defs>
+                <marker
+                  id="arr3"
+                  viewBox="0 0 10 10"
+                  refX="8"
+                  refY="5"
+                  markerWidth="7"
+                  markerHeight="7"
+                  orient="auto-start-reverse"
+                >
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#264653" />
+                </marker>
+              </defs>
+
+              <rect
+                x="24"
+                y="26"
+                width="1212"
+                height="538"
+                rx="28"
+                fill="#fffaf3"
+                stroke="rgba(38,70,83,0.08)"
+              />
+
+              <!-- 情境一 -->
+              <rect
+                x="60"
+                y="80"
+                width="210"
+                height="120"
+                rx="20"
+                fill="#fff0da"
+                stroke="#d97706"
+              />
+              <text
+                x="165"
+                y="118"
+                text-anchor="middle"
+                font-size="22"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                情境一
+              </text>
+              <text
+                x="165"
+                y="144"
+                text-anchor="middle"
+                font-size="14"
+                fill="#5e6573"
+              >
+                build_app_container()
+              </text>
+              <text
+                x="165"
+                y="166"
+                text-anchor="middle"
+                font-size="13"
+                fill="#7e8694"
+              >
+                啟動時建立 runtime graph
+              </text>
+
+              <!-- AppContainer 大框 -->
+              <rect
+                x="346"
+                y="58"
+                width="558"
+                height="162"
+                rx="24"
+                fill="#fff8ec"
+                stroke="#d97706"
+                stroke-width="2"
+              />
+              <text
+                x="625"
+                y="100"
+                text-anchor="middle"
+                font-size="26"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                AppContainer
+              </text>
+              <text
+                x="625"
+                y="126"
+                text-anchor="middle"
+                font-size="15"
+                fill="#5e6573"
+              >
+                config + agent + session_service + runner
+              </text>
+              <!-- sub-chips -->
+              <rect
+                x="382"
+                y="146"
+                width="104"
+                height="34"
+                rx="12"
+                fill="#fff0da"
+                stroke="#d97706"
+              />
+              <text
+                x="434"
+                y="168"
+                text-anchor="middle"
+                font-size="13"
+                fill="#1e2430"
+              >
+                config
+              </text>
+              <rect
+                x="500"
+                y="146"
+                width="104"
+                height="34"
+                rx="12"
+                fill="#fce9ee"
+                stroke="#b94f6d"
+              />
+              <text
+                x="552"
+                y="168"
+                text-anchor="middle"
+                font-size="13"
+                fill="#1e2430"
+              >
+                agent
+              </text>
+              <rect
+                x="618"
+                y="146"
+                width="140"
+                height="34"
+                rx="12"
+                fill="#e7f6f3"
+                stroke="#2a9d8f"
+              />
+              <text
+                x="688"
+                y="168"
+                text-anchor="middle"
+                font-size="13"
+                fill="#1e2430"
+              >
+                session_service
+              </text>
+              <rect
+                x="772"
+                y="146"
+                width="96"
+                height="34"
+                rx="12"
+                fill="#eef6fb"
+                stroke="#457b9d"
+              />
+              <text
+                x="820"
+                y="168"
+                text-anchor="middle"
+                font-size="13"
+                fill="#1e2430"
+              >
+                runner
+              </text>
+
+              <!-- 情境一 → AppContainer -->
+              <line
+                x1="270"
+                y1="140"
+                x2="346"
+                y2="140"
+                stroke="#264653"
+                stroke-width="2.5"
+                marker-end="url(#arr3)"
+              />
+
+              <!-- lifespan -->
+              <rect
+                x="966"
+                y="80"
+                width="224"
+                height="120"
+                rx="20"
+                fill="#eef6fb"
+                stroke="#457b9d"
+              />
+              <text
+                x="1078"
+                y="118"
+                text-anchor="middle"
+                font-size="21"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                lifespan / app.state
+              </text>
+              <text
+                x="1078"
+                y="144"
+                text-anchor="middle"
+                font-size="13"
+                fill="#5e6573"
+              >
+                container 掛到 FastAPI app
+              </text>
+              <text
+                x="1078"
+                y="164"
+                text-anchor="middle"
+                font-size="12"
+                fill="#7e8694"
+              >
+                request 期共用同一份 runtime
+              </text>
+
+              <!-- AppContainer → lifespan -->
+              <line
+                x1="904"
+                y1="140"
+                x2="966"
+                y2="140"
+                stroke="#264653"
+                stroke-width="2.5"
+                marker-end="url(#arr3)"
+              />
+
+              <!-- 情境二 -->
+              <rect
+                x="60"
+                y="342"
+                width="210"
+                height="120"
+                rx="20"
+                fill="#eef6fb"
+                stroke="#457b9d"
+              />
+              <text
+                x="165"
+                y="380"
+                text-anchor="middle"
+                font-size="22"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                情境二
+              </text>
+              <text
+                x="165"
+                y="406"
+                text-anchor="middle"
+                font-size="13"
+                fill="#5e6573"
+              >
+                POST /api/agent/run
+              </text>
+              <text
+                x="165"
+                y="426"
+                text-anchor="middle"
+                font-size="12"
+                fill="#7e8694"
+              >
+                從 dependencies 取 container
+              </text>
+
+              <!-- get_container -->
+              <rect
+                x="346"
+                y="318"
+                width="224"
+                height="80"
+                rx="18"
+                fill="#eef6fb"
+                stroke="#457b9d"
+              />
+              <text
+                x="458"
+                y="351"
+                text-anchor="middle"
+                font-size="19"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                get_container()
+              </text>
+              <text
+                x="458"
+                y="374"
+                text-anchor="middle"
+                font-size="13"
+                fill="#5e6573"
+              >
+                request.app.state.container
+              </text>
+
+              <!-- SessionFacade + AgentRunService -->
+              <rect
+                x="618"
+                y="298"
+                width="268"
+                height="120"
+                rx="18"
+                fill="#e7f6f3"
+                stroke="#2a9d8f"
+              />
+              <text
+                x="752"
+                y="332"
+                text-anchor="middle"
+                font-size="17"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                SessionFacade
+              </text>
+              <text
+                x="752"
+                y="354"
+                text-anchor="middle"
+                font-size="17"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                + AgentRunService
+              </text>
+              <text
+                x="752"
+                y="376"
+                text-anchor="middle"
+                font-size="12"
+                fill="#5e6573"
+              >
+                consume session_service / runner
+              </text>
+              <text
+                x="752"
+                y="396"
+                text-anchor="middle"
+                font-size="12"
+                fill="#5e6573"
+              >
+                組裝 session lifecycle + SSE stream
+              </text>
+
+              <!-- Runner → Agent → Tools -->
+              <rect
+                x="944"
+                y="318"
+                width="244"
+                height="80"
+                rx="18"
+                fill="#fce9ee"
+                stroke="#b94f6d"
+              />
+              <text
+                x="1066"
+                y="352"
+                text-anchor="middle"
+                font-size="18"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                Runner → Agent → Tools
+              </text>
+              <text
+                x="1066"
+                y="374"
+                text-anchor="middle"
+                font-size="12"
+                fill="#5e6573"
+              >
+                執行 ADK，產生 events
+              </text>
+
+              <!-- SSE output -->
+              <rect
+                x="750"
+                y="454"
+                width="438"
+                height="70"
+                rx="16"
+                fill="#eef6fb"
+                stroke="#457b9d"
+              />
+              <text
+                x="969"
+                y="484"
+                text-anchor="middle"
+                font-size="17"
+                font-weight="700"
+                fill="#1e2430"
+              >
+                map_adk_event_to_envelopes() → encode_sse_event()
+              </text>
+              <text
+                x="969"
+                y="507"
+                text-anchor="middle"
+                font-size="13"
+                fill="#5e6573"
+              >
+                meta / timeline / message / state / done / error
+              </text>
+
+              <!-- arrows scenario 2 -->
+              <line
+                x1="270"
+                y1="402"
+                x2="346"
+                y2="358"
+                stroke="#264653"
+                stroke-width="2.5"
+                marker-end="url(#arr3)"
+              />
+              <line
+                x1="570"
+                y1="358"
+                x2="618"
+                y2="358"
+                stroke="#264653"
+                stroke-width="2.5"
+                marker-end="url(#arr3)"
+              />
+              <line
+                x1="886"
+                y1="358"
+                x2="944"
+                y2="358"
+                stroke="#264653"
+                stroke-width="2.5"
+                marker-end="url(#arr3)"
+              />
+              <line
+                x1="1066"
+                y1="398"
+                x2="1066"
+                y2="454"
+                stroke="#264653"
+                stroke-width="2.5"
+                marker-end="url(#arr3)"
+              />
+
+              <!-- dashed lifespan → get_container -->
+              <line
+                x1="1078"
+                y1="200"
+                x2="1078"
+                y2="284"
+                stroke="#264653"
+                stroke-width="2"
+                stroke-dasharray="8 7"
+              />
+              <line
+                x1="1078"
+                y1="284"
+                x2="458"
+                y2="284"
+                stroke="#264653"
+                stroke-width="2"
+                stroke-dasharray="8 7"
+              />
+              <line
+                x1="458"
+                y1="284"
+                x2="458"
+                y2="318"
+                stroke="#264653"
+                stroke-width="2"
+                stroke-dasharray="8 7"
+                marker-end="url(#arr3)"
+              />
+            </svg>
+          </div>
+        </div>
+
+        <div class="summary-grid" style="margin-top: 20px">
+          <div class="summary-card summary-card--accent">
+            <strong>Build（情境一）</strong>
+            <p>
+              啟動期由 <code>build_app_container()</code> 把所有 runtime
+              元件建齊，封裝成不可變的 AppContainer，再由
+              <code>lifespan()</code> 掛到 <code>app.state</code>。
+            </p>
+          </div>
+          <div class="summary-card summary-card--blue">
+            <strong>Consume（情境二）</strong>
+            <p>
+              每個 request 透過 <code>get_container()</code> 取回同一份
+              AppContainer，解構出 runner / session_service / config，交給
+              AgentRunService 驅動 ADK 執行。
+            </p>
+          </div>
+          <div class="summary-card summary-card--teal">
+            <strong>交會點</strong>
+            <p>
+              <code>AppContainer</code> 與
+              <code>get_container()</code>
+              是兩條流程的唯一橋樑。排查問題時，只要釐清是 build 階段失敗還是
+              consume 階段失敗，就可快速定位。
+            </p>
+          </div>
+        </div>
+
+        <div class="footnote">
+          <strong>問題定位指南：</strong>
+          啟動就失敗 →
+          <code>app/core/config.py</code
+          >、<code>app/core/container.py</code>、<code>app/agent.py</code>｜
+          /readyz 不通 → <code>app/application/health.py</code>｜ /api/agent/run
+          前置失敗 →
+          <code>app/api/routes/run.py</code
+          >、<code>app/api/session_service.py</code>｜ SSE 內容不對 →
+          <code>app/application/agent_run_service.py</code
+          >、<code>app/api/streaming.py</code>、<code>app/api/mappers/adk_event_mapper.py</code>｜
+          state 不對 →
+          <code>app/tools/session_tools.py</code
+          >、<code>app/api/presenters/session_presenter.py</code>、<code
+            >app/domain/session_state.py</code
+          >
+        </div>
+      </section>
+
+      <!-- ══════════ ERROR PATHS ══════════ -->
+      <section id="error-paths" class="panel section-anchor layout">
+        <div class="section-head">
+          <div>
+            <div class="section-kicker">Error Paths</div>
+            <h2>錯誤路徑總覽</h2>
+          </div>
+          <p>三層錯誤處理策略，每層的回應格式不同，需分層排查。</p>
+        </div>
+
+        <div class="step-list">
+          <div class="step-item">
+            <div
+              class="step-num"
+              style="
+                background: var(--rose-soft);
+                color: #6b1c33;
+                border-radius: 12px;
+                font-family: var(--mono);
+                font-size: 0.82rem;
+                font-weight: 700;
+                display: grid;
+                place-items: center;
+                width: 40px;
+                height: 40px;
+              "
+            >
+              422
+            </div>
+            <div class="step-body">
+              <strong>Request schema 不符（FastAPI 自動處理）</strong>
+              <p>
+                欄位型別錯誤或缺少必要欄位，FastAPI 直接回
+                <code>422 Unprocessable Entity</code>，不進入 route handler。
+              </p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div
+              class="step-num"
+              style="
+                background: var(--rose-soft);
+                color: #6b1c33;
+                border-radius: 12px;
+                font-family: var(--mono);
+                font-size: 0.82rem;
+                font-weight: 700;
+                display: grid;
+                place-items: center;
+                width: 40px;
+                height: 40px;
+              "
+            >
+              400
+            </div>
+            <div class="step-body">
+              <strong>Route 前置驗證失敗</strong>
+              <p>
+                trim 後 <code>prompt</code> 或 <code>sessionId</code> 為空 →
+                <code>HTTP 400</code>，JSON body:
+                <code>{"error": "prompt and sessionId are required"}</code>。
+              </p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div
+              class="step-num"
+              style="
+                background: var(--rose-soft);
+                color: #6b1c33;
+                border-radius: 12px;
+                font-family: var(--mono);
+                font-size: 0.82rem;
+                font-weight: 700;
+                display: grid;
+                place-items: center;
+                width: 40px;
+                height: 40px;
+              "
+            >
+              502
+            </div>
+            <div class="step-body">
+              <strong>Session 建立失敗</strong>
+              <p>
+                <code>ensure_session()</code> 拋出例外 →
+                <code>HTTP 502</code>，JSON body:
+                <code>{"error": "Unable to ensure session: ..."}</code>。SSE
+                串流尚未開始。
+              </p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div
+              class="step-num"
+              style="
+                background: var(--rose-soft);
+                color: #6b1c33;
+                border-radius: 12px;
+                font-family: var(--mono);
+                font-size: 0.82rem;
+                font-weight: 700;
+                display: grid;
+                place-items: center;
+                width: 40px;
+                height: 40px;
+              "
+            >
+              SSE
+            </div>
+            <div class="step-body">
+              <strong>ADK 執行中發生例外</strong>
+              <p>
+                <code>AgentRunService.stream()</code> 的
+                <code>except Exception as exc</code> →
+                <code>yield build_error_envelope(str(exc))</code>。HTTP status
+                通常仍為 200（SSE response 已建立），但串流尾端 client 會收到
+                <code>error</code> envelope 而非 <code>done</code>。
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="error-box" style="margin-top: 16px">
+          <strong>注意：</strong>ADK 執行中的錯誤不會觸發 HTTP 非 2xx，因為
+          StreamingResponse headers 在 SSE 首個 frame
+          送出前就已固定。前端需主動檢查是否收到 <code>error</code> envelope
+          而非 <code>done</code>。
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

@@ -32,7 +32,20 @@
 
 ![arch](archi.png)
 
-### 元件責任
+### 後端架構摘要
+
+目前後端已收斂為以下責任分工：
+
+- app/api：FastAPI HTTP 邊界，只負責 request、response、routes、SSE 與 app 組裝
+- app/services：session 管理、agent 執行流程、readiness 檢查等業務邏輯
+- app/agent.py：ADK Agent 組裝入口，負責 prompt 載入與 toolbox/session tools 組裝
+- app/container.py：集中組裝 config、agent、runner、session store 與 services
+- app/tools：提供 ADK 可直接呼叫的本地 session state tools
+- app/prompts：管理代理提示詞
+
+更完整的依賴方向與流程說明請見 [docs/architecture.md](docs/architecture.md)。
+
+### 外部元件責任
 
 - Google ADK Agent：負責互動 orchestration，判斷要追問、查哪個工具、何時補查細節與規則
 - ToolboxToolset：作為 ADK 與 MCP Toolbox 間的 MCP 橋接層
@@ -46,22 +59,14 @@
 
 ### Agent 執行路徑
 
-目前 app/agent.py 採用以下做法：
+目前後端採用以下執行路徑：
 
-- 以 gemini-2.5-flash 作為模型
-- 從 app/prompts/insurance_agent_prompt.txt 載入主代理提示詞
-- 透過 ToolboxToolset 連接 http://127.0.0.1:5000 的 MCP Toolbox
-- 在正式執行路徑中使用 Toolbox 提供的工具，而不是直接把本地 Python helper 註冊成 agent tools
-
-### 本地 Python helper 的角色
-
-app/tools/insurance_tools.py 仍保留一組本地 SQLite helper，主要用途是：
-
-- 提供查詢邏輯的參考實作
-- 供本地測試與資料檢查使用
-- 幫助比對 YAML 工具與 Python 查詢行為
-
-換句話說，執行中的 Agent 目前主要依賴 MCP Toolbox；本地 Python helper 是輔助與測試資產，不是主要 runtime tool surface。
+- app/agent.py 建立 ADK Agent、ToolboxToolset，並從 app/prompts/insurance_agent_prompt.txt 載入主代理提示詞
+- app/container.py 建立 session store、runner 與 services，並聚合成 AppContainer
+- app/api/main.py 建立 FastAPI app，掛載 health、readiness 與 agent routes
+- app/api/routes/run.py 以 SSE 方式把 AgentRunService 的執行結果持續送回前端
+- app/api/routes/sessions.py 提供 session 的 list、create、delete API
+- 正式執行路徑透過 ToolboxToolset 連接 MCP Toolbox，工具定義仍以 db/tools.yaml 為唯一來源
 
 ---
 
@@ -77,7 +82,6 @@ insurance-recommendation-agent/
 │   ├── prompts
 │   │   └── insurance_agent_prompt.txt
 │   └── tools
-│       ├── insurance_tools.py
 │       └── session_tools.py
 ├── archi.png
 ├── data
@@ -112,7 +116,6 @@ insurance-recommendation-agent/
 │   │   │   └── case_s3_update_budget.test.json
 │   │   └── test_config.json
 │   ├── test_cases.md
-│   ├── test_insurance_tools.py
 │   └── test_result_template.md
 └── uv.lock
 ```
@@ -147,10 +150,25 @@ insurance-recommendation-agent/
 - get_product_detail
 - get_recommendation_rules
 
-### Toolsets
-
-- insurance_recommendation_tools
-- insurance_debug_tools
+│   ├── config.py
+│   ├── container.py
+│   ├── session_state.py
+│   ├── api
+│   │   ├── dependencies.py
+│   │   ├── main.py
+│   │   ├── routes
+│   │   │   ├── run.py
+│   │   │   └── sessions.py
+│   │   ├── schemas.py
+│   │   └── sse.py
+│   ├── prompts
+│   │   └── insurance_agent_prompt.txt
+│   ├── services
+│   │   ├── agent_run_service.py
+│   │   ├── readiness_service.py
+│   │   └── session_service.py
+│   └── tools
+│       └── session_tools.py
 
 ### Prompts
 
@@ -353,15 +371,21 @@ make down
 http://127.0.0.1:8000
 ```
 
-### 建議啟動順序
+### 建議啟動順序（FastAPI 後端）
 
 ```bash
 make install
 make db-init
 make toolbox-up
-make run-api
-make ui-dev
+make run-fastapi   # 啟動 FastAPI backend（port 8080）
+make ui-dev        # 啟動 Next.js 前端（port 3000）
 ```
+
+前端透過 `frontend/.env.local` 的 `FASTAPI_BASE_URL` 指向 FastAPI backend，預設為 `http://127.0.0.1:8080`。Next.js route handler 只做輕量 proxy，不再直接依賴 ADK API server 或 `/run_sse`。
+
+資料流：前端 → Next.js API routes → FastAPI → ADK Runner → Toolbox MCP → SQLite
+
+> 若需要使用 ADK Web UI 開發模式，可改執行 `make run`（port 8000）。
 
 ---
 
@@ -373,7 +397,7 @@ make ui-dev
 make check
 ```
 
-目前 tests/test_insurance_tools.py 主要用來驗證本地 SQLite helper 的查詢結果。
+目前 Python 測試重點為 API 與整體流程行為，工具查詢邏輯以 db/tools.yaml 與 ADK 端到端行為為主。
 
 ### ADK evals
 
