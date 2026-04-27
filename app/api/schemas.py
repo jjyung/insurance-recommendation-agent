@@ -13,6 +13,5 @@ class AgentRunRequest(BaseModel):
 
 
 class SessionCreateRequest(BaseModel):
-    sessionId: str = Field(min_length=1)
-    userId: str | None = Field(default=None)
+    sessionId: str | None = Field(default=None)
     state: dict[str, Any] = Field(default_factory=dict)

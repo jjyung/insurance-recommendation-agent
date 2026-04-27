@@ -21,6 +21,8 @@ import {
 
 type InspectorTab = 'events' | 'state';
 
+const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? 'app';
+
 const LS_PREFIX = 'ins-agent:history:';
 
 function saveSessionHistory(
@@ -161,9 +163,12 @@ export function AdkWorkbench() {
   // 從 ADK 載入 session 清單，合併 localStorage 的歷史訊息
   useEffect(() => {
     if (userId === 'anonymous') return;
-    fetch(`/api/agent/sessions?userId=${encodeURIComponent(userId)}`, {
-      cache: 'no-store',
-    })
+    fetch(
+      `/api/apps/${APP_NAME}/users/${encodeURIComponent(userId)}/sessions`,
+      {
+        cache: 'no-store',
+      },
+    )
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((data: { sessions: SessionRecord[] }) => {
         if (!Array.isArray(data.sessions) || data.sessions.length === 0) return;
@@ -321,18 +326,20 @@ export function AdkWorkbench() {
     setActiveSessionId(newSession.id);
     setSelectedEventId('');
     // 在 ADK 建立 session（fire and forget）
-    fetch('/api/agent/sessions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sessionId: newSession.id,
-        userId,
-        state: {
-          _ui_title: newSession.title,
-          _ui_subtitle: newSession.subtitle,
-        },
-      }),
-    }).catch(() => {
+    fetch(
+      `/api/apps/${APP_NAME}/users/${encodeURIComponent(userId)}/sessions`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: newSession.id,
+          state: {
+            _ui_title: newSession.title,
+            _ui_subtitle: newSession.subtitle,
+          },
+        }),
+      },
+    ).catch(() => {
       /* ADK 離線，靜默忽略 */
     });
   }
@@ -385,7 +392,7 @@ export function AdkWorkbench() {
     removeSessionHistory(sessionId);
     // 從 ADK 刪除 session（fire and forget）
     fetch(
-      `/api/agent/sessions/${encodeURIComponent(sessionId)}?userId=${encodeURIComponent(userId)}`,
+      `/api/apps/${APP_NAME}/users/${encodeURIComponent(userId)}/sessions/${encodeURIComponent(sessionId)}`,
       {
         method: 'DELETE',
       },

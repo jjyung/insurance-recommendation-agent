@@ -104,6 +104,21 @@ class SessionService:
             for session in sessions
         ]
 
+    async def get_session(
+        self,
+        session_id: str,
+        user_id: str | None = None,
+    ) -> dict[str, Any] | None:
+        resolved_user_id = self._resolve_user_id(user_id)
+        session = await self._session_store.get_session(
+            app_name=self._config.app_name,
+            user_id=resolved_user_id,
+            session_id=session_id,
+        )
+        if session is None:
+            return None
+        return to_session_list_item(session)
+
     async def ensure_session(
         self,
         session_id: str,
