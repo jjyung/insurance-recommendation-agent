@@ -48,7 +48,7 @@
 - app/tools：提供 ADK 可直接呼叫的本地 session state tools
 - app/prompts：管理代理提示詞
 
-更完整的依賴方向與流程說明請見 [docs/architecture.md](docs/architecture.md)。
+更完整的依賴方向與流程說明請見 [docs/02_architecture.md](docs/02_architecture.md)。
 
 ### 外部元件責任
 
@@ -467,11 +467,11 @@ make eval-session-aware-case-s3
 
 ## 相關文件
 
-- docs/architecture.md：系統架構與資料流
-- docs/prompt_tool_contract.md：Prompt 與 Tool 的分工邊界
-- docs/governance.md：治理與限制說明
-- docs/limitations.md：限制與後續方向
-- docs/demo_script.md：示範對話腳本
+- docs/01_overview.md：專案概述、總結與限制說明
+- docs/02_architecture.md：系統架構與設計
+- docs/03_core_flows.md：核心執行流程
+- docs/04_agent_design.md：代理設計、治理與邊界
+- docs/05_demo_guide.md：示範對話腳本
 
 ---
 
