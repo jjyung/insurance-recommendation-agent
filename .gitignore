@@ -35,4 +35,4 @@ docker-compose.override.yml
 .adk/
 
 # Database
-db/*.db
+*.db
