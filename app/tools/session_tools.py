@@ -8,12 +8,20 @@ from app.session_state import (
     LAST_RECOMMENDATION_STATE_KEYS,
     TRACKED_PROFILE_STATE_KEYS,
 )
+from app.security.pii import redact_text
 
 """
 本模組定義了與會話狀態（Session State）相關的工具函式，
 主要用於管理用戶畫像（User Profile）及推薦紀錄。
 這些工具讓 AI 代理人（Agent）能夠在對話過程中存取與持久化用戶資訊。
 """
+
+
+def _clean_profile_text(value: str | None) -> str | None:
+    if not isinstance(value, str):
+        return None
+    redacted, _findings = redact_text(value.strip().lower())
+    return redacted
 
 
 def get_user_profile_snapshot(tool_context: ToolContext) -> dict[str, Any]:
@@ -84,16 +92,8 @@ def save_user_profile(
             marital_status.strip().lower() if isinstance(marital_status, str) else None
         ),
         "user:has_children": has_children,
-        "user:existing_coverage": (
-            existing_coverage.strip().lower()
-            if isinstance(existing_coverage, str)
-            else None
-        ),
-        "user:risk_preference": (
-            risk_preference.strip().lower()
-            if isinstance(risk_preference, str)
-            else None
-        ),
+        "user:existing_coverage": _clean_profile_text(existing_coverage),
+        "user:risk_preference": _clean_profile_text(risk_preference),
     }
 
     # 更新狀態字典

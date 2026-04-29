@@ -34,16 +34,23 @@ class AppRuntimeConfig:
     應用程式執行階段配置資料類別。
     封裝了從環境變數載入的所有關鍵配置。
     """
-    app_name: str               # 應用程式名稱
-    api_user_id: str            # 預設 API 使用者識別碼
-    toolbox_server_url: str     # Toolbox (MCP) 伺服器網址
-    session_db_uri: str         # Session 資料庫連線字串 (如 SQLite)
-    memory_mode: str            # 記憶體模式 (例如 in_memory)
-    model_name: str             # 使用的 LLM 模型名稱
-    fastapi_host: str           # FastAPI 伺服器監聽主機位址
-    fastapi_port: int           # FastAPI 伺服器監聽埠號
-    fastapi_reload: bool        # 是否啟用 FastAPI 自動重載 (開發模式用)
-    cors_allow_origins: tuple[str, ...] # CORS 允許的來源網域
+
+    app_name: str  # 應用程式名稱
+    api_user_id: str  # 預設 API 使用者識別碼
+    toolbox_server_url: str  # Toolbox (MCP) 伺服器網址
+    session_db_uri: str  # Session 資料庫連線字串 (如 SQLite)
+    memory_mode: str  # 記憶體模式 (例如 in_memory)
+    model_name: str  # 使用的 LLM 模型名稱
+    fastapi_host: str  # FastAPI 伺服器監聽主機位址
+    fastapi_port: int  # FastAPI 伺服器監聽埠號
+    fastapi_reload: bool  # 是否啟用 FastAPI 自動重載 (開發模式用)
+    cors_allow_origins: tuple[str, ...]  # CORS 允許的來源網域
+    # audit 相關配置（可選）
+    audit_enabled: bool
+    audit_db_path: str
+    audit_retention_days: int
+    audit_hash_salt: str
+    pii_redaction_enabled: bool
 
 
 def load_runtime_config() -> AppRuntimeConfig:
@@ -67,6 +74,11 @@ def load_runtime_config() -> AppRuntimeConfig:
             "FASTAPI_CORS_ALLOW_ORIGINS",
             ("http://127.0.0.1:3000", "http://localhost:3000"),
         ),
+        audit_enabled=_parse_bool_env("AUDIT_LOG_ENABLED", True),
+        audit_db_path=os.getenv("AUDIT_DB_PATH", "./db/audit_events.db"),
+        audit_retention_days=int(os.getenv("AUDIT_RETENTION_DAYS", "365")),
+        audit_hash_salt=os.getenv("AUDIT_HASH_SALT", "dev-only-change-me"),
+        pii_redaction_enabled=_parse_bool_env("PII_REDACTION_ENABLED", True),
     )
 
 

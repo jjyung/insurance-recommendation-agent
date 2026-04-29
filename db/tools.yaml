@@ -17,22 +17,36 @@ parameters:
     type: integer
     description: Annual insurance budget.
 statement: |
+  WITH input(age, budget) AS (
+    VALUES (?, ?)
+  )
   SELECT
-      product_id,
-      product_name,
-      product_type,
-      annual_premium_min,
-      annual_premium_max,
-      coverage_focus,
-      coverage_summary,
-      waiting_period_days,
-      exclusions
-  FROM insurance_products
-  WHERE is_active = 1
-    AND ? BETWEEN target_age_min AND target_age_max
-    AND annual_premium_min <= ?
-    AND product_type = 'medical'
-  ORDER BY annual_premium_min ASC;
+    p.product_id,
+    p.product_name,
+    p.product_type,
+    p.annual_premium_min,
+    p.annual_premium_max,
+    p.coverage_focus,
+    p.coverage_summary,
+    p.waiting_period_days,
+    p.exclusions,
+    CASE
+      WHEN p.annual_premium_max <= input.budget THEN 'fully_within_budget'
+      WHEN p.annual_premium_min <= input.budget THEN 'entry_affordable'
+      ELSE 'over_budget'
+    END AS budget_fit
+  FROM insurance_products p
+  CROSS JOIN input
+  WHERE p.is_active = 1
+    AND input.age BETWEEN p.target_age_min AND p.target_age_max
+    AND p.annual_premium_min <= input.budget
+    AND p.product_type = 'medical'
+  ORDER BY
+    CASE
+      WHEN p.annual_premium_max <= input.budget THEN 0
+      ELSE 1
+    END,
+    p.annual_premium_min ASC;
 
 ---
 kind: tool
@@ -48,22 +62,36 @@ parameters:
     type: integer
     description: Annual insurance budget.
 statement: |
+  WITH input(age, budget) AS (
+    VALUES (?, ?)
+  )
   SELECT
-      product_id,
-      product_name,
-      product_type,
-      annual_premium_min,
-      annual_premium_max,
-      coverage_focus,
-      coverage_summary,
-      waiting_period_days,
-      exclusions
-  FROM insurance_products
-  WHERE is_active = 1
-    AND ? BETWEEN target_age_min AND target_age_max
-    AND annual_premium_min <= ?
-    AND product_type = 'accident'
-  ORDER BY annual_premium_min ASC;
+    p.product_id,
+    p.product_name,
+    p.product_type,
+    p.annual_premium_min,
+    p.annual_premium_max,
+    p.coverage_focus,
+    p.coverage_summary,
+    p.waiting_period_days,
+    p.exclusions,
+    CASE
+      WHEN p.annual_premium_max <= input.budget THEN 'fully_within_budget'
+      WHEN p.annual_premium_min <= input.budget THEN 'entry_affordable'
+      ELSE 'over_budget'
+    END AS budget_fit
+  FROM insurance_products p
+  CROSS JOIN input
+  WHERE p.is_active = 1
+    AND input.age BETWEEN p.target_age_min AND p.target_age_max
+    AND p.annual_premium_min <= input.budget
+    AND p.product_type = 'accident'
+  ORDER BY
+    CASE
+      WHEN p.annual_premium_max <= input.budget THEN 0
+      ELSE 1
+    END,
+    p.annual_premium_min ASC;
 
 ---
 kind: tool
@@ -79,22 +107,36 @@ parameters:
     type: integer
     description: Annual insurance budget.
 statement: |
+  WITH input(age, budget) AS (
+    VALUES (?, ?)
+  )
   SELECT
-      product_id,
-      product_name,
-      product_type,
-      annual_premium_min,
-      annual_premium_max,
-      coverage_focus,
-      coverage_summary,
-      waiting_period_days,
-      exclusions
-  FROM insurance_products
-  WHERE is_active = 1
-    AND ? BETWEEN target_age_min AND target_age_max
-    AND annual_premium_min <= ?
-    AND product_type = 'life'
-  ORDER BY annual_premium_min ASC;
+    p.product_id,
+    p.product_name,
+    p.product_type,
+    p.annual_premium_min,
+    p.annual_premium_max,
+    p.coverage_focus,
+    p.coverage_summary,
+    p.waiting_period_days,
+    p.exclusions,
+    CASE
+      WHEN p.annual_premium_max <= input.budget THEN 'fully_within_budget'
+      WHEN p.annual_premium_min <= input.budget THEN 'entry_affordable'
+      ELSE 'over_budget'
+    END AS budget_fit
+  FROM insurance_products p
+  CROSS JOIN input
+  WHERE p.is_active = 1
+    AND input.age BETWEEN p.target_age_min AND p.target_age_max
+    AND p.annual_premium_min <= input.budget
+    AND p.product_type = 'life'
+  ORDER BY
+    CASE
+      WHEN p.annual_premium_max <= input.budget THEN 0
+      ELSE 1
+    END,
+    p.annual_premium_min ASC;
 
 ---
 kind: tool
@@ -110,24 +152,40 @@ parameters:
     type: integer
     description: Annual insurance budget.
 statement: |
+  WITH input(age, budget) AS (
+    VALUES (?, ?)
+  )
   SELECT
-      product_id,
-      product_name,
-      product_type,
-      annual_premium_min,
-      annual_premium_max,
-      coverage_focus,
-      coverage_summary,
-      waiting_period_days,
-      exclusions
-  FROM insurance_products
-  WHERE is_active = 1
-    AND ? BETWEEN target_age_min AND target_age_max
-    AND annual_premium_min <= ?
-    AND product_type IN ('critical_illness', 'life')
+    p.product_id,
+    p.product_name,
+    p.product_type,
+    p.annual_premium_min,
+    p.annual_premium_max,
+    p.coverage_focus,
+    p.coverage_summary,
+    p.waiting_period_days,
+    p.exclusions,
+    CASE
+      WHEN p.annual_premium_max <= input.budget THEN 'fully_within_budget'
+      WHEN p.annual_premium_min <= input.budget THEN 'entry_affordable'
+      ELSE 'over_budget'
+    END AS budget_fit
+  FROM insurance_products p
+  CROSS JOIN input
+  WHERE p.is_active = 1
+    AND input.age BETWEEN p.target_age_min AND p.target_age_max
+    AND p.annual_premium_min <= input.budget
+    AND p.product_type IN ('critical_illness', 'life')
   ORDER BY
-      CASE WHEN product_type = 'critical_illness' THEN 0 ELSE 1 END,
-      annual_premium_min ASC;
+    CASE
+      WHEN p.annual_premium_max <= input.budget THEN 0
+      ELSE 1
+    END,
+    CASE
+      WHEN p.product_type = 'critical_illness' THEN 0
+      ELSE 1
+    END,
+    p.annual_premium_min ASC;
 
 ---
 kind: tool
@@ -141,18 +199,18 @@ parameters:
     description: Insurance product ID.
 statement: |
   SELECT
-      product_id,
-      product_name,
-      product_type,
-      target_age_min,
-      target_age_max,
-      annual_premium_min,
-      annual_premium_max,
-      coverage_focus,
-      coverage_summary,
-      waiting_period_days,
-      exclusions,
-      is_active
+    product_id,
+    product_name,
+    product_type,
+    target_age_min,
+    target_age_max,
+    annual_premium_min,
+    annual_premium_max,
+    coverage_focus,
+    coverage_summary,
+    waiting_period_days,
+    exclusions,
+    is_active
   FROM insurance_products
   WHERE product_id = ?
     AND is_active = 1;
@@ -169,12 +227,12 @@ parameters:
     description: Product type. One of medical, accident, life, critical_illness.
 statement: |
   SELECT
-      rule_id,
-      rule_name,
-      product_type,
-      condition_json,
-      recommendation_logic,
-      priority
+    rule_id,
+    rule_name,
+    product_type,
+    condition_json,
+    recommendation_logic,
+    priority
   FROM recommendation_rules
   WHERE is_active = 1
     AND product_type = ?
@@ -192,15 +250,15 @@ parameters:
     description: Exact insurance product name.
 statement: |
   SELECT
-      product_id,
-      product_name,
-      product_type,
-      annual_premium_min,
-      annual_premium_max,
-      coverage_focus,
-      coverage_summary,
-      waiting_period_days,
-      exclusions
+    product_id,
+    product_name,
+    product_type,
+    annual_premium_min,
+    annual_premium_max,
+    coverage_focus,
+    coverage_summary,
+    waiting_period_days,
+    exclusions
   FROM insurance_products
   WHERE is_active = 1
     AND product_name = ?;
@@ -233,9 +291,11 @@ messages:
   - role: user
     content: |
       使用者目前已提供的資訊如下：
+
       {{.known_information}}
 
       請以保險推薦代理的角色，向使用者追問缺少的核心必要資訊。
+
       核心必要資訊包括：
       - 年齡
       - 預算
@@ -275,6 +335,10 @@ messages:
       5. 若沒有完全符合條件的商品，需誠實說明並提供最接近候選方案
       6. 不可承諾保證核保、保證理賠或保證收益
       7. 不可虛構工具結果中不存在的資訊
+      8. 若推薦商品資料包含 budget_fit，請依下列規則描述預算符合程度：
+         - budget_fit = "fully_within_budget"：可說明商品列示保費範圍符合使用者年度預算
+         - budget_fit = "entry_affordable"：必須說明入門保費看起來符合預算，但較高保障方案可能超出預算
+         - 不得在 annual_premium_max 高於使用者預算時，宣稱商品完整符合預算
 arguments:
   - name: user_profile
     description: "Normalized user profile summary."

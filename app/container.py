@@ -14,6 +14,7 @@ from app.config import AppRuntimeConfig, load_runtime_config
 from app.services.agent_run_service import AgentRunService
 from app.services.readiness_service import ReadinessService
 from app.services.session_service import SessionService
+from app.services.audit_log_service import AuditLogService
 
 
 def _normalize_sqlite_db_path(session_db_uri: str) -> str:
@@ -72,13 +73,15 @@ class AppContainer:
     應用程式依賴注入容器。
     集中管理並持有應用程式運作所需的所有核心實例。
     """
-    config: AppRuntimeConfig             # 配置
-    agent: Agent                         # 代理人
-    session_store: BaseSessionService     # Session 儲存
-    runner: Runner                       # 執行器
-    sessions: SessionService             # Session 管理服務
-    agent_runs: AgentRunService          # 代理人執行任務服務
-    readiness: ReadinessService          # 系統健康狀態服務
+
+    config: AppRuntimeConfig  # 配置
+    agent: Agent  # 代理人
+    session_store: BaseSessionService  # Session 儲存
+    runner: Runner  # 執行器
+    sessions: SessionService  # Session 管理服務
+    agent_runs: AgentRunService  # 代理人執行任務服務
+    readiness: ReadinessService  # 系統健康狀態服務
+    audit_logs: AuditLogService  # 審計日誌服務
 
 
 def build_app_container(config: AppRuntimeConfig | None = None) -> AppContainer:
@@ -91,6 +94,12 @@ def build_app_container(config: AppRuntimeConfig | None = None) -> AppContainer:
     session_store = create_session_store(runtime_config)
     runner = create_runner(runtime_config, agent, session_store)
     sessions = SessionService(session_store, runtime_config)
+    audit_logs = AuditLogService(
+        db_path=runtime_config.audit_db_path,
+        hash_salt=runtime_config.audit_hash_salt,
+        retention_days=runtime_config.audit_retention_days,
+        enabled=runtime_config.audit_enabled,
+    )
 
     return AppContainer(
         config=runtime_config,
@@ -99,7 +108,8 @@ def build_app_container(config: AppRuntimeConfig | None = None) -> AppContainer:
         runner=runner,
         sessions=sessions,
         # AgentRunService 負責封裝 Runner 的執行邏輯
-        agent_runs=AgentRunService(runner, sessions, runtime_config),
+        agent_runs=AgentRunService(runner, sessions, runtime_config, audit_logs),
         # ReadinessService 負責檢查系統相依性（如資料庫）是否正常
         readiness=ReadinessService(session_store, runtime_config),
+        audit_logs=audit_logs,
     )
