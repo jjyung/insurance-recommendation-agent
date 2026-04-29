@@ -1,21 +1,33 @@
-.PHONY: help install install-eval sync sync-eval db-init db-reset toolbox-up toolbox-down toolbox-logs \
-	run run-web run-api run-cli run-fastapi ui-install ui-dev ui-build clean clean-all check test-api env-check eval-core eval-safety \
-	eval-safety-case-09 eval-safety-case-10 eval-safety-case-11 eval-safety-case-12 eval-safety-case-13 \
-	eval-session-aware eval-session-aware-case-s1 eval-session-aware-case-s2 eval-session-aware-case-s3
+.PHONY: help \
+	install install-dev install-eval install-gcp install-all \
+	sync sync-dev sync-eval sync-gcp sync-all \
+	db-init db-reset clean-db clean-sessions \
+	toolbox-up toolbox-down toolbox-logs \
+	run run-web run-api run-cli run-fastapi debug-fastapi \
+	ui-install ui-dev ui-build \
+	clean clean-all check test-api env-check \
+	eval-core eval-core-case-1 eval-core-case-2 eval-core-case-3 \
+	eval-extended eval-extended-case-4 eval-extended-case-5 eval-extended-case-6 \
+	eval-safety eval-safety-case-09 eval-safety-case-10 eval-safety-case-11 eval-safety-case-12 eval-safety-case-13 \
+	eval-session-aware eval-session-aware-case-s1 eval-session-aware-case-s2 eval-session-aware-case-s3 \
+	up down _kill-port
 
 # ─── 預設目標 ──────────────────────────────────────────────
+
 help: ## 列出所有可用指令
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | \
-		awk 'BEGIN {FS = ":.*##"}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
+	awk 'BEGIN {FS = ":.*##"}; {printf " \033[36m%-24s\033[0m %s\n", $$1, $$2}'
 
 # ─── 變數 ──────────────────────────────────────────────────
-PYTHON   := .venv/bin/python
-UV       := uv
-SQLITE   := sqlite3
-NPM      := npm
-DB_FILE  := db/insurance.db
-ADK      := .venv/bin/adk
-APP_DIR  := .
+
+PYTHON := .venv/bin/python
+UV := uv
+SQLITE := sqlite3
+NPM := npm
+
+DB_FILE := db/insurance.db
+ADK := .venv/bin/adk
+APP_DIR := .
 ADK_PORT := 8000
 FASTAPI_PORT := 8080
 FRONTEND_DIR := frontend
@@ -24,29 +36,52 @@ EVAL_CONFIG := $(EVAL_DIR)/test_config.json
 DEBUG_PORT ?= 5678
 
 # ─── 環境建立 ──────────────────────────────────────────────
-install: ## 建立虛擬環境並安裝所有依賴
+
+install: ## 建立虛擬環境並安裝核心依賴
 	$(UV) venv --python 3.12
 	$(UV) sync
+
+install-dev: ## 建立虛擬環境並安裝開發依賴
+	$(UV) venv --python 3.12
+	$(UV) sync --extra dev
 
 install-eval: ## 建立虛擬環境並安裝含 eval extra 的依賴
 	$(UV) venv --python 3.12
 	$(UV) sync --extra eval
 
-sync: ## 同步依賴（已有 .venv 時使用）
+install-gcp: ## 建立虛擬環境並安裝 GCP optional 依賴
+	$(UV) venv --python 3.12
+	$(UV) sync --extra gcp
+
+install-all: ## 建立虛擬環境並安裝所有 optional 依賴
+	$(UV) venv --python 3.12
+	$(UV) sync --all-extras
+
+sync: ## 同步核心依賴（已有 .venv 時使用）
 	$(UV) sync
+
+sync-dev: ## 同步開發依賴
+	$(UV) sync --extra dev
 
 sync-eval: ## 同步含 eval extra 的依賴（執行 evals 時使用）
 	$(UV) sync --extra eval
 
+sync-gcp: ## 同步 GCP optional 依賴
+	$(UV) sync --extra gcp
+
+sync-all: ## 同步所有 optional 依賴
+	$(UV) sync --all-extras
+
 env-check: ## 檢查必要工具與環境變數
 	@echo "=== 環境檢查 ==="
-	@command -v $(UV) >/dev/null 2>&1  && echo "✔ uv"              || echo "✘ uv 未安裝"
-	@command -v docker >/dev/null 2>&1 && echo "✔ docker"          || echo "✘ docker 未安裝"
-	@command -v $(SQLITE) >/dev/null 2>&1 && echo "✔ sqlite3"      || echo "✘ sqlite3 未安裝"
-	@[ -f .env ]                       && echo "✔ .env 存在"       || echo "✘ .env 不存在"
-	@[ -d .venv ]                      && echo "✔ .venv 存在"      || echo "✘ .venv 不存在（請先 make install）"
+	@command -v $(UV) >/dev/null 2>&1 && echo "✔ uv" || echo "✘ uv 未安裝"
+	@command -v docker >/dev/null 2>&1 && echo "✔ docker" || echo "✘ docker 未安裝"
+	@command -v $(SQLITE) >/dev/null 2>&1 && echo "✔ sqlite3" || echo "✘ sqlite3 未安裝"
+	@[ -f .env ] && echo "✔ .env 存在" || echo "✘ .env 不存在"
+	@[ -d .venv ] && echo "✔ .venv 存在" || echo "✘ .venv 不存在（請先 make install）"
 
 # ─── 資料庫 ────────────────────────────────────────────────
+
 db-init: ## 建立 SQLite 資料庫（schema + seed）
 	@mkdir -p data
 	$(SQLITE) $(DB_FILE) < db/schema.sql
@@ -57,7 +92,8 @@ db-reset: ## 刪除並重建資料庫
 	rm -f $(DB_FILE)
 	$(MAKE) db-init
 
-# ─── Toolbox 服務（Docker）───────────────────────────────
+# ─── Toolbox 服務（Docker）────────────────────────────────
+
 toolbox-up: ## 啟動 Toolbox 容器（背景執行）
 	docker compose up -d
 
@@ -68,6 +104,7 @@ toolbox-logs: ## 查看 Toolbox 容器日誌
 	docker compose logs -f
 
 # ─── 執行 Agent ────────────────────────────────────────────
+
 run: run-web ## 預設以 Web UI 啟動 Agent
 
 run-web: _kill-port ## 以 ADK Web UI 啟動 Agent
@@ -76,8 +113,8 @@ run-web: _kill-port ## 以 ADK Web UI 啟動 Agent
 		export $$(grep -v '^#' .env | xargs); \
 	fi; \
 	$(ADK) web \
-	  --session_service_uri "$$ADK_SESSION_DB_URI" \
-	  .
+		--session_service_uri "$$ADK_SESSION_DB_URI" \
+		.
 
 run-api: _kill-port ## 以 ADK API Server 啟動 Agent
 	@set -e; \
@@ -85,20 +122,6 @@ run-api: _kill-port ## 以 ADK API Server 啟動 Agent
 		export $$(grep -v '^#' .env | xargs); \
 	fi; \
 	$(ADK) api_server .
-
-# 啟動具有 debug 模式的本地後端伺服器
-# 用法：make debug-backend [PORT=8000] [DEBUG_PORT=5678]
-# 注意：debugpy 與 uvicorn --reload 在 macOS 上容易造成埠號衝突，debug target 預設停用熱重載
-debug-fastapi:
-	$(call ensure_port_free,$(or $(PORT),8080))
-	$(call ensure_port_free,$(DEBUG_PORT))
-	@echo "==============================================================================="
-	@echo "| 🐛 啟動後端 Debug 模式...                                             |"
-	@echo "| 📍 伺服器位址：http://localhost:$(or $(PORT),8080)                           |"
-	@echo "| 🔍 Debugger 監聽：$(DEBUG_PORT)                                                   |"
-	@echo "| 🔄 熱重載：停用（避免 debugpy 埠衝突）                                         |"
-	@echo "==============================================================================="
-	uv run --with debugpy python -m debugpy --listen $(DEBUG_PORT) --wait-for-client -m uvicorn app.api.main:app --host "$${FASTAPI_HOST:-127.0.0.1}" --port "$${FASTAPI_PORT:-$(FASTAPI_PORT)}"
 
 run-fastapi: ## 以 FastAPI 啟動 backend
 	@set -e; \
@@ -109,7 +132,24 @@ run-fastapi: ## 以 FastAPI 啟動 backend
 	if [ "$${FASTAPI_RELOAD:-true}" = "true" ]; then \
 		RELOAD_FLAG="--reload"; \
 	fi; \
-	$(UV) run uvicorn app.api.main:app --host "$${FASTAPI_HOST:-127.0.0.1}" --port "$${FASTAPI_PORT:-$(FASTAPI_PORT)}" $$RELOAD_FLAG
+	$(UV) run uvicorn app.api.main:app \
+		--host "$${FASTAPI_HOST:-127.0.0.1}" \
+		--port "$${FASTAPI_PORT:-$(FASTAPI_PORT)}" \
+		$$RELOAD_FLAG
+
+debug-fastapi: ## 啟動具有 debugpy 的 FastAPI backend
+	@echo "==============================================================================="
+	@echo "| 啟動後端 Debug 模式"
+	@echo "| 伺服器位址：http://localhost:$(FASTAPI_PORT)"
+	@echo "| Debugger 監聽：$(DEBUG_PORT)"
+	@echo "| 熱重載：停用（避免 debugpy 埠衝突）"
+	@echo "==============================================================================="
+	$(UV) run --with debugpy python -m debugpy \
+		--listen $(DEBUG_PORT) \
+		--wait-for-client \
+		-m uvicorn app.api.main:app \
+		--host "$${FASTAPI_HOST:-127.0.0.1}" \
+		--port "$${FASTAPI_PORT:-$(FASTAPI_PORT)}"
 
 run-cli: ## 以 CLI 模式啟動 Agent
 	$(ADK) run $(APP_DIR)
@@ -133,16 +173,43 @@ _kill-port: ## (內部) 釋放 ADK_PORT 佔用的程序
 	fi
 
 # ─── 測試 ──────────────────────────────────────────────────
-check: ## 執行測試
+
+check: ## 執行測試（需要 dev extra）
 	$(PYTHON) -m pytest tests/ -v
 
-test-api: ## 執行 FastAPI API 測試
+test-api: ## 執行 FastAPI API 測試（需要 dev extra）
 	$(PYTHON) -m pytest tests/test_fastapi_api.py -v
 
-# ─── ADK Evals ───────────────────────────────────────────
+# ─── ADK Evals ────────────────────────────────────────────
+
 eval-core: ## 執行核心回歸 eval
-	$(ADK) eval app $(EVAL_DIR)/insurance_core.test.json --config_file_path $(EVAL_CONFIG)
-	$(ADK) eval app $(EVAL_DIR)/insurance_extended.test.json --config_file_path $(EVAL_CONFIG)
+	$(MAKE) eval-core-case-1
+	$(MAKE) eval-core-case-2
+	$(MAKE)make
+	$(MAKE) eval-extended
+
+eval-core-case-1: ## 執行 core case 1 eval
+	$(ADK) eval app $(EVAL_DIR)/core/case_1_medical_complete_info.test.json --config_file_path $(EVAL_CONFIG)
+
+eval-core-case-2: ## 執行 core case 2 eval
+	$(ADK) eval app $(EVAL_DIR)/core/case_2_missing_information.test.json --config_file_path $(EVAL_CONFIG)
+
+eval-core-case-3: ## 執行 core case 3 eval
+	$(ADK) eval app $(EVAL_DIR)/core/case_3_family_protection.test.json --config_file_path $(EVAL_CONFIG)
+
+eval-extended: ## 執行 extended eval
+	$(MAKE) eval-extended-case-4
+	$(MAKE) eval-extended-case-5
+	$(MAKE) eval-extended-case-6
+
+eval-extended-case-4: ## 執行 extended case 4 eval
+	$(ADK) eval app $(EVAL_DIR)/extended/case_4_accident_low_budget_young_user.test.json --config_file_path $(EVAL_CONFIG)
+
+eval-extended-case-5: ## 執行 extended case 5 eval
+	$(ADK) eval app $(EVAL_DIR)/extended/case_5_income_protection.test.json --config_file_path $(EVAL_CONFIG)
+
+eval-extended-case-6: ## 執行 extended case 6 eval
+	$(ADK) eval app $(EVAL_DIR)/extended/case_6_no_exact_match_senior_low_budget_medical.test.json --config_file_path $(EVAL_CONFIG)
 
 eval-safety: ## 執行所有 safety 單案 eval
 	$(MAKE) eval-safety-case-09
@@ -181,6 +248,7 @@ eval-session-aware-case-s3: ## 執行 session-aware case s3 eval
 	$(ADK) eval app $(EVAL_DIR)/session_aware/case_s3_update_budget.test.json --config_file_path $(EVAL_CONFIG)
 
 # ─── 清除 ──────────────────────────────────────────────────
+
 clean: ## 清除快取與暫存檔
 	find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
 	find . -type f -name '*.pyc' -delete 2>/dev/null || true
@@ -196,7 +264,8 @@ clean-all: clean clean-db clean-sessions ## 完整清除（快取 + 資料庫 + 
 	rm -rf .venv
 	@echo "已完整清除。重新建立請執行 make install"
 
-# ─── 一鍵啟動 ─────────────────────────────────────────────
+# ─── 一鍵啟動 ──────────────────────────────────────────────
+
 up: install db-init toolbox-up ## 一鍵完成環境建立 + DB 初始化 + 啟動 Toolbox
 	@echo ""
 	@echo "環境就緒！執行 make run 啟動 Agent"

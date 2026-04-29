@@ -19,13 +19,17 @@
           "final_response": {
             "parts": [
               {
-                "text": "應理解這是既有條件更新，更新預算後沿用既有需求脈絡，不應重新追問所有已知欄位。"
+                "text": "應理解這是既有條件更新，先讀取既有 session 狀態，再將預算更新為 20000，並沿用既有需求脈絡，不應重新追問所有已知欄位。"
               }
             ],
             "role": null
           },
           "intermediate_data": {
             "tool_uses": [
+              {
+                "name": "get_user_profile_snapshot",
+                "args": {}
+              },
               {
                 "name": "save_user_profile",
                 "args": {
