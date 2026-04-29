@@ -82,15 +82,27 @@ env-check: ## 檢查必要工具與環境變數
 
 # ─── 資料庫 ────────────────────────────────────────────────
 
-db-init: ## 建立 SQLite 資料庫（schema + seed）
-	@mkdir -p data
-	$(SQLITE) $(DB_FILE) < db/schema.sql
-	$(SQLITE) $(DB_FILE) < db/seed.sql
-	@echo "資料庫已初始化：$(DB_FILE)"
+DB_FILE ?= db/insurance.db
+AUDIT_DB_FILE ?= db/audit_events.db
+SQLITE ?= sqlite3
+
+db-init: ## 建立 SQLite 資料庫（insurance schema + seed + audit schema）
+	@set -e; \
+	mkdir -p db data; \
+	echo "Initializing insurance database: $(DB_FILE)"; \
+	$(SQLITE) $(DB_FILE) < db/schema.sql; \
+	$(SQLITE) $(DB_FILE) < db/seed.sql; \
+	if [ -f db/audit_schema.sql ]; then \
+		echo "Initializing audit database: $(AUDIT_DB_FILE)"; \
+		$(SQLITE) $(AUDIT_DB_FILE) < db/audit_schema.sql; \
+	else \
+		echo "Skip audit database: db/audit_schema.sql not found"; \
+	fi; \
+	echo "Database initialized successfully."
 
 db-reset: ## 刪除並重建資料庫
-	rm -f $(DB_FILE)
-	$(MAKE) db-init
+	@rm -f $(DB_FILE) $(AUDIT_DB_FILE)
+	@$(MAKE) db-init
 
 # ─── Toolbox 服務（Docker）────────────────────────────────
 

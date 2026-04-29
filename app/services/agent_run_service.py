@@ -14,7 +14,42 @@ from google.genai import types as genai_types
 
 from app.config import AppRuntimeConfig
 from app.services.session_service import SessionService, safe_stringify
+from app.services.audit_log_service import AuditLogService, AuditContext
 
+
+STATE_TOOLS = {
+    "save_user_profile",
+    "save_last_recommendation",
+    "clear_last_recommendation",
+}
+
+QUERY_TOOLS = {
+    "search_medical_products",
+    "search_accident_products",
+    "search_family_protection_products",
+    "search_income_protection_products",
+    "get_product_details",
+    "get_recommendation_rules",
+    "search_products_by_name",
+}
+
+
+def classify_tool_name(tool_name: str) -> str:
+    if tool_name in STATE_TOOLS:
+        return "state"
+    if tool_name in QUERY_TOOLS:
+        return "query"
+    return "tool"
+
+
+def state_tool_label(tool_name: str, is_result: bool = False) -> str:
+    if tool_name == "save_user_profile":
+        return "已更新使用者條件" if is_result else "正在更新使用者條件"
+    if tool_name == "save_last_recommendation":
+        return "已記錄本次推薦商品" if is_result else "正在記錄本次推薦商品"
+    if tool_name == "clear_last_recommendation":
+        return "已清除上次推薦商品" if is_result else "正在清除上次推薦商品"
+    return "已更新對話狀態" if is_result else "正在更新對話狀態"
 
 def format_event_timestamp(timestamp: float | None) -> str:
     """
@@ -290,15 +325,20 @@ def map_adk_event_to_envelopes(event: Event, sequence: int) -> list[dict[str, ob
     return envelopes
 
 
+
+
+
 class AgentRunService:
     """
     管理 Agent 執行週期的核心服務類別。
     """
+
     def __init__(
         self,
         runner: Runner,
         sessions: SessionService,
         config: AppRuntimeConfig,
+        audit_logs: AuditLogService | None = None,
     ) -> None:
         """
         初始化 AgentRunService。
@@ -311,6 +351,7 @@ class AgentRunService:
         self._runner = runner
         self._sessions = sessions
         self._config = config
+        self._audit_logs = audit_logs
 
     async def ensure_session(
         self,
@@ -323,6 +364,56 @@ class AgentRunService:
         """
         await self._sessions.ensure_session(session_id, initial_state, user_id=user_id)
 
+
+    async def _record_envelope_audit(
+    self,
+    *,
+    audit_context: AuditContext,
+    envelope: dict[str, object],
+    sequence: int,
+    ) -> None:
+        if not self._audit_logs:
+            return
+
+        envelope_type = str(envelope.get("type", ""))
+
+        if envelope_type == "timeline":
+            event = envelope.get("event", {})
+            if not isinstance(event, dict):
+                return
+
+            kind = str(event.get("kind", "timeline"))
+            title = str(event.get("title", ""))
+
+            tool_name = title
+            event_type = {
+                "tool-call": "agent.tool_call",
+                "tool-result": "agent.tool_result",
+                "state": "agent.state_delta",
+                "agent": "agent.message",
+                "stream": "agent.message",
+            }.get(kind, f"agent.{kind}")
+
+            await self._audit_logs.record(
+                context=audit_context,
+                event_type=event_type,
+                actor="agent",
+                tool_name=tool_name if kind in {"tool-call", "tool-result"} else None,
+                sequence=sequence,
+                input_payload=event if kind == "tool-call" else None,
+                output_payload=event if kind != "tool-call" else None,
+            )
+
+        elif envelope_type == "error":
+            await self._audit_logs.record(
+                context=audit_context,
+                event_type="agent.error",
+                actor="system",
+                sequence=sequence,
+                output_payload=envelope,
+                policy_decision="error_redacted",
+            )
+
     async def stream(
         self,
         *,
@@ -330,6 +421,7 @@ class AgentRunService:
         session_id: str,
         session_state: dict[str, str] | None = None,
         user_id: str | None = None,
+        audit_context: AuditContext | None = None,
     ) -> AsyncGenerator[dict[str, object], None]:
         """
         執行 Agent 並串流回傳結果。
@@ -351,9 +443,19 @@ class AgentRunService:
         resolved_user_id = (
             user_id.strip() if user_id and user_id.strip() else self._config.api_user_id
         )
+        audit_context: AuditContext | None = None
 
         # 1. 發送中繼資訊封包
         yield build_meta_envelope()
+
+        if self._audit_logs and audit_context:
+            await self._audit_logs.record(
+                context=audit_context,
+                event_type="user.prompt.received",
+                actor="user",
+                sequence=0,
+                input_payload={"prompt": prompt},
+            )
 
         try:
             # 2. 開始與 ADK Runner 互動並處理事件
@@ -374,6 +476,14 @@ class AgentRunService:
                 merged_state = merge_state_patches(merged_state, envelopes)
 
                 for envelope in envelopes:
+
+                    if self._audit_logs and audit_context:
+                        await self._record_envelope_audit(
+                            audit_context=audit_context,
+                            envelope=envelope,
+                            sequence=sequence,
+                        )
+
                     if envelope.get("type") == "message":
                         text = str(envelope.get("text", ""))
                         if envelope.get("mode") == "append":
@@ -389,6 +499,18 @@ class AgentRunService:
                 fallback_state=merged_state,
                 user_id=user_id,
             )
+            # 審計記錄執行完成事件
+            if self._audit_logs and audit_context:
+                await self._audit_logs.record(
+                    context=audit_context,
+                    event_type="response.completed",
+                    actor="agent",
+                    sequence=sequence + 1,
+                    output_payload={
+                        "finalText": current_text,
+                        "state": final_state,
+                    },
+                )
             # 4. 發送完成封包
             yield build_done_envelope(
                 final_text=current_text
