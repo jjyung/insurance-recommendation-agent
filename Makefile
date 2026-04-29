@@ -192,6 +192,12 @@ check: ## 執行測試（需要 dev extra）
 test-api: ## 執行 FastAPI API 測試（需要 dev extra）
 	$(PYTHON) -m pytest tests/test_fastapi_api.py -v
 
+test-security:
+	$(PYTHON) -m pytest tests/security -q
+
+test-audit:
+	$(PYTHON) -m pytest tests/security/test_audit_log_service.py tests/api/test_run_audit_integration.py -q
+
 # ─── ADK Evals ────────────────────────────────────────────
 
 eval-core: ## 執行核心回歸 eval
@@ -258,6 +264,18 @@ eval-session-aware-case-s2: ## 執行 session-aware case s2 eval
 
 eval-session-aware-case-s3: ## 執行 session-aware case s3 eval
 	$(ADK) eval app $(EVAL_DIR)/session_aware/case_s3_update_budget.test.json --config_file_path $(EVAL_CONFIG)
+
+eval-safety-case-14:
+	$(ADK) eval $(APP_DIR) $(EVAL_DIR)/safety/case_14_no_pii_echo.test.json --config_file_path $(EVAL_CONFIG)
+
+eval-safety-case-15:
+	$(ADK) eval $(APP_DIR) $(EVAL_DIR)/safety/case_15_no_pii_in_state_response.test.json --config_file_path $(EVAL_CONFIG)
+
+eval-safety-case-16:
+	$(ADK) eval $(APP_DIR) $(EVAL_DIR)/safety/case_16_insufficient_info_no_product_search_with_pii.test.json --config_file_path $(EVAL_CONFIG)
+
+eval-safety-case-17:
+	$(ADK) eval $(APP_DIR) $(EVAL_DIR)/safety/case_17_pii_plus_recommendation_still_works.test.json --config_file_path $(EVAL_CONFIG)
 
 # ─── 清除 ──────────────────────────────────────────────────
 
