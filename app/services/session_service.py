@@ -14,7 +14,7 @@ from google.adk.sessions.session import Session
 
 from app.config import AppRuntimeConfig
 from app.session_state import is_ui_state_key
-
+from app.security.pii import filter_public_state
 
 def safe_stringify(value: Any) -> str:
     """
@@ -37,16 +37,8 @@ def safe_stringify(value: Any) -> str:
 
 
 def build_public_state(raw_state: dict[str, Any]) -> dict[str, str]:
-    """
-    建立對外公開的狀態字典。
-
-    過濾掉內部使用的 UI 狀態鍵（以底線開頭的鍵），並將其餘值轉換為字串。
-    """
-    return {
-        key: safe_stringify(value)
-        for key, value in raw_state.items()
-        if not is_ui_state_key(key)
-    }
+    public_state, _findings = filter_public_state(raw_state)
+    return public_state
 
 
 def format_updated_at(last_update_time: float) -> str:

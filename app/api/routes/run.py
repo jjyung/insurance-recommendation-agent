@@ -9,6 +9,8 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from app.api.dependencies import get_container
 from app.api.schemas import AgentRunRequest
 from app.services.agent_run_service import AgentRunService
+import uuid
+from app.services.audit_log_service import AuditContext
 
 
 def encode_sse_event(envelope: dict[str, object]) -> str:
@@ -61,6 +63,17 @@ async def run_agent(payload: AgentRunRequest, request: Request):
             content={"error": "prompt and sessionId are required"},
         )
 
+    request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
+    trace_id = request.headers.get("x-trace-id") or str(uuid.uuid4())
+    resolved_user_id = payload.userId or get_container(request).config.api_user_id
+
+    audit_context = AuditContext(
+        trace_id=trace_id,
+        request_id=request_id,
+        session_id=session_id,
+        user_id=resolved_user_id,
+    )
+
     run_service = get_agent_run_service(request)
 
     try:
@@ -83,6 +96,7 @@ async def run_agent(payload: AgentRunRequest, request: Request):
             session_id=session_id,
             session_state=payload.sessionState,
             user_id=payload.userId,
+            audit_context=audit_context,
         ):
             yield encode_sse_event(envelope)
 
