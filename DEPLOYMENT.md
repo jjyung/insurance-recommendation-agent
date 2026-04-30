@@ -102,6 +102,50 @@ make setup-dev-env
 make deploy
 ```
 
+## Destroy（Dev）
+
+刪除 dev Terraform 基礎設施：
+
+```bash
+make destroy-dev-env
+```
+
+等價指令：
+
+```bash
+cd deployment/terraform/dev
+terraform init
+terraform destroy --var-file vars/env.tfvars --var dev_project_id=$(gcloud config get-value project) --auto-approve
+```
+
+你也可以使用別名：
+
+```bash
+make teardown-dev-env
+```
+
+### Destroy 常見錯誤
+
+若看到以下錯誤：
+
+```text
+role "<db-user>" cannot be dropped because some objects depend on it
+```
+
+代表該 DB user 仍擁有資料庫物件（tables/indexes）。  
+目前 Terraform 已調整刪除順序（先刪 DB，再刪 user）來降低這個問題：
+
+- `google_sql_database.database` 依賴 `google_sql_user.db_user`
+
+若仍遇到殘留依賴，可先在 Postgres 執行：
+
+```sql
+REASSIGN OWNED BY "<db-user>" TO postgres;
+DROP OWNED BY "<db-user>";
+```
+
+再重新執行 `make destroy-dev-env`。
+
 ## Troubleshooting: `Uploading sources` 很慢
 
 如果在 `gcloud run deploy --source .` 卡在 `Uploading sources`，通常是因為上傳的 source context 太大。

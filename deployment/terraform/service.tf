@@ -63,6 +63,10 @@ resource "google_sql_database" "database" {
   project  = local.deploy_project_ids[each.key]
   name     = "${var.project_name}" # Use project name for DB to avoid conflict with default 'postgres'
   instance = google_sql_database_instance.session_db[each.key].name
+
+  # Ensure DB is destroyed before DB user to avoid:
+  # "role cannot be dropped because some objects depend on it".
+  depends_on = [google_sql_user.db_user]
 }
 
 # Cloud SQL User

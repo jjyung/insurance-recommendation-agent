@@ -1,7 +1,8 @@
 .PHONY: help install install-eval sync sync-eval db-init db-reset toolbox-up toolbox-down toolbox-logs \
 	run run-web run-api run-cli run-fastapi ui-install ui-dev ui-build clean clean-all check test-api env-check eval-core eval-safety \
 	eval-safety-case-09 eval-safety-case-10 eval-safety-case-11 eval-safety-case-12 eval-safety-case-13 \
-	eval-session-aware eval-session-aware-case-s1 eval-session-aware-case-s2 eval-session-aware-case-s3
+	eval-session-aware eval-session-aware-case-s1 eval-session-aware-case-s2 eval-session-aware-case-s3 \
+	setup-dev-env destroy-dev-env teardown-dev-env
 
 # ─── 預設目標 ──────────────────────────────────────────────
 help: ## 列出所有可用指令
@@ -268,6 +269,12 @@ playground:
 setup-dev-env:
 	PROJECT_ID=$$(gcloud config get-value project) && \
 	(cd deployment/terraform/dev && terraform init && terraform apply --var-file vars/env.tfvars --var dev_project_id=$$PROJECT_ID --auto-approve)
+
+destroy-dev-env: ## 刪除 dev Terraform 基礎設施（terraform destroy）
+	PROJECT_ID=$$(gcloud config get-value project) && \
+	(cd deployment/terraform/dev && terraform init && terraform destroy --var-file vars/env.tfvars --var dev_project_id=$$PROJECT_ID --auto-approve)
+
+teardown-dev-env: destroy-dev-env ## destroy-dev-env 的別名
 
 test:
 	uv sync --dev

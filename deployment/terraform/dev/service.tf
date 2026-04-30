@@ -26,10 +26,10 @@ resource "random_password" "db_password" {
 
 # Cloud SQL Instance
 resource "google_sql_database_instance" "session_db" {
-  project          = var.dev_project_id
-  name             = "${var.project_name}-db-dev"
-  database_version = "POSTGRES_15"
-  region           = var.region
+  project             = var.dev_project_id
+  name                = "${var.project_name}-db-dev"
+  database_version    = "POSTGRES_15"
+  region              = var.region
   deletion_protection = false
 
   settings {
@@ -38,7 +38,7 @@ resource "google_sql_database_instance" "session_db" {
     backup_configuration {
       enabled = false # No backups for dev
     }
-    
+
     # Enable IAM authentication
     database_flags {
       name  = "cloudsql.iam_authentication"
@@ -52,14 +52,18 @@ resource "google_sql_database_instance" "session_db" {
 # Cloud SQL Database
 resource "google_sql_database" "database" {
   project  = var.dev_project_id
-  name     = "${var.project_name}" # Use project name for DB to avoid conflict with default 'postgres'
+  name     = var.project_name # Use project name for DB to avoid conflict with default 'postgres'
   instance = google_sql_database_instance.session_db.name
+
+  # Ensure DB is destroyed before DB user to avoid:
+  # "role cannot be dropped because some objects depend on it".
+  depends_on = [google_sql_user.db_user]
 }
 
 # Cloud SQL User
 resource "google_sql_user" "db_user" {
   project  = var.dev_project_id
-  name     = "${var.project_name}" # Use project name for user to avoid conflict with default 'postgres'
+  name     = var.project_name # Use project name for user to avoid conflict with default 'postgres'
   instance = google_sql_database_instance.session_db.name
   password = google_secret_manager_secret_version.db_password.secret_data
 }
@@ -89,7 +93,7 @@ resource "google_cloud_run_v2_service" "app" {
   deletion_protection = false
   ingress             = "INGRESS_TRAFFIC_ALL"
   labels = {
-    "created-by"                  = "adk"
+    "created-by" = "adk"
   }
 
   template {
@@ -125,12 +129,12 @@ resource "google_cloud_run_v2_service" "app" {
 
       env {
         name  = "DB_NAME"
-        value = "${var.project_name}"
+        value = var.project_name
       }
 
       env {
         name  = "DB_USER"
-        value = "${var.project_name}"
+        value = var.project_name
       }
 
       env {
@@ -144,7 +148,7 @@ resource "google_cloud_run_v2_service" "app" {
       }
     }
 
-    service_account = google_service_account.app_sa.email
+    service_account                  = google_service_account.app_sa.email
     max_instance_request_concurrency = 40
 
     scaling {
