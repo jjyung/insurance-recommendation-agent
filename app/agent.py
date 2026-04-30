@@ -104,3 +104,7 @@ root_agent = create_agent()
 
 # if __name__ == "__main__":
 #     asyncio.run(main())
+
+from google.adk.apps import App
+
+app = App(root_agent=root_agent, name="app")

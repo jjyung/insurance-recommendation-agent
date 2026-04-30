@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from urllib.parse import quote
 
 
 def _parse_bool_env(name: str, default: bool) -> bool:
@@ -28,6 +29,30 @@ def _parse_csv_env(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
     return items or default
 
 
+def _build_cloud_sql_session_uri_from_env() -> str | None:
+    """
+    若部署在 Cloud Run 且有提供 Cloud SQL 連線所需環境變數，
+    自動組合 ADK_SESSION_DB_URI (postgresql+asyncpg)。
+    """
+    instance_connection_name = os.getenv("INSTANCE_CONNECTION_NAME")
+    db_user = os.getenv("DB_USER")
+    db_name = os.getenv("DB_NAME")
+    db_pass = os.getenv("DB_PASS")
+
+    if not all([instance_connection_name, db_user, db_name, db_pass]):
+        return None
+
+    encoded_user = quote(db_user, safe="")
+    encoded_pass = quote(db_pass, safe="")
+    encoded_instance = quote(instance_connection_name, safe="")
+    encoded_db_name = quote(db_name, safe="")
+
+    return (
+        f"postgresql+asyncpg://{encoded_user}:{encoded_pass}@/{encoded_db_name}"
+        f"?host=/cloudsql/{encoded_instance}"
+    )
+
+
 @dataclass(frozen=True)
 class AppRuntimeConfig:
     """
@@ -50,13 +75,15 @@ def load_runtime_config() -> AppRuntimeConfig:
     """
     從系統環境變數中載入配置，並提供合理的預設值。
     """
+    derived_session_db_uri = _build_cloud_sql_session_uri_from_env()
+
     return AppRuntimeConfig(
         app_name=os.getenv("ADK_APP_NAME", "app"),
         api_user_id=os.getenv("ADK_API_USER_ID", "demo-user"),
         toolbox_server_url=os.getenv("TOOLBOX_SERVER_URL", "http://127.0.0.1:5000"),
         session_db_uri=os.getenv(
             "ADK_SESSION_DB_URI",
-            "sqlite+aiosqlite:///./db/adk_sessions.db",
+            derived_session_db_uri or "sqlite+aiosqlite:///./db/adk_sessions.db",
         ),
         memory_mode=os.getenv("ADK_MEMORY_MODE", "in_memory"),
         model_name=os.getenv("MODEL_NAME", "gemini-3-flash-preview"),

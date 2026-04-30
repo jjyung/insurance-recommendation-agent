@@ -1,0 +1,46 @@
+# Keep Docker build context small and deterministic.
+
+# VCS / local env
+.git
+.gitignore
+.venv/
+venv/
+env/
+.python-version
+.DS_Store
+
+# IDE / local state
+.vscode/
+.idea/
+.adk/
+app/.adk/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Node / frontend artifacts
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/.vercel/
+
+# Non-runtime folders for this image
+tests/
+notebooks/
+docs/
+deployment/
+db/
+!db/**
+
+# CI / misc
+.cloudbuild/
+docker-compose.yml
+docker-compose.override.yml
+
+# Secrets / local env files
+.env
+.env.*

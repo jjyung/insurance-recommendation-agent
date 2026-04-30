@@ -22,6 +22,7 @@ FRONTEND_DIR := frontend
 EVAL_DIR := tests/evals
 EVAL_CONFIG := $(EVAL_DIR)/test_config.json
 DEBUG_PORT ?= 5678
+DEPLOY_MODEL_NAME ?= gemini-3.1-flash-lite-preview
 
 # ─── 環境建立 ──────────────────────────────────────────────
 install: ## 建立虛擬環境並安裝所有依賴
@@ -202,3 +203,72 @@ up: install db-init toolbox-up ## 一鍵完成環境建立 + DB 初始化 + 啟�
 	@echo "環境就緒！執行 make run 啟動 Agent"
 
 down: toolbox-down ## 停止所有服務
+
+# --- Commands from Agent Starter Pack ---
+
+backend: deploy
+
+deploy:
+	@set -e; \
+	PROJECT_ID=$$(gcloud config get-value project) && \
+	gcloud beta run deploy ins-reco-agent \
+		--source . \
+		--memory "4Gi" \
+		--project $$PROJECT_ID \
+		--region "asia-east1" \
+		--allow-unauthenticated \
+		--no-cpu-throttling \
+		--labels "created-by=adk" \
+		--update-build-env-vars "AGENT_VERSION=$(shell awk -F'"' '/^version = / {print $$2}' pyproject.toml || echo '0.0.0')" \
+		--update-env-vars \
+		"ADK_APP_NAME=ins_reco_agent,FASTAPI_HOST=0.0.0.0,FASTAPI_PORT=8080,ADK_MEMORY_MODE=in_memory,OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=NO_CONTENT,MODEL_NAME=$(DEPLOY_MODEL_NAME),GOOGLE_GENAI_USE_VERTEXAI=1,GOOGLE_CLOUD_LOCATION=global,GOOGLE_CLOUD_PROJECT=$$PROJECT_ID,TOOLBOX_SERVER_URL=http://127.0.0.1:5000" \
+		$(if $(IAP),--iap) \
+		$(if $(PORT),--port=$(PORT))
+
+eval:
+	@echo "==============================================================================="
+	@echo "| Running Agent Evaluation                                                    |"
+	@echo "==============================================================================="
+	uv sync --dev --extra eval
+	uv run adk eval ./app $${EVALSET:-tests/eval/evalsets/basic.evalset.json} \
+		$(if $(EVAL_CONFIG),--config_file_path=$(EVAL_CONFIG),$(if $(wildcard tests/eval/eval_config.json),--config_file_path=tests/eval/eval_config.json,))
+
+eval-all:
+	@echo "==============================================================================="
+	@echo "| Running All Evalsets                                                        |"
+	@echo "==============================================================================="
+	@for evalset in tests/eval/evalsets/*.evalset.json; do \
+		echo ""; \
+		echo "▶ Running: $$evalset"; \
+		$(MAKE) eval EVALSET=$$evalset || exit 1; \
+	done
+	@echo ""
+	@echo "✅ All evalsets completed"
+
+lint:
+	uv sync --dev --extra lint
+	uv run codespell
+	uv run ruff check . --diff
+	uv run ruff format . --check --diff
+	uv run ty check .
+
+local-backend:
+	uv run uvicorn app.api.main:app --host localhost --port $(or $(PORT),8000) --reload
+
+playground:
+	@echo "==============================================================================="
+	@echo "| 🚀 Starting your agent playground...                                        |"
+	@echo "|                                                                             |"
+	@echo "| 💡 Try asking: What's the weather in San Francisco?                         |"
+	@echo "|                                                                             |"
+	@echo "| 🔍 IMPORTANT: Select the 'app' folder to interact with your agent.          |"
+	@echo "==============================================================================="
+	uv run adk web . --port 8501 --reload_agents
+
+setup-dev-env:
+	PROJECT_ID=$$(gcloud config get-value project) && \
+	(cd deployment/terraform/dev && terraform init && terraform apply --var-file vars/env.tfvars --var dev_project_id=$$PROJECT_ID --auto-approve)
+
+test:
+	uv sync --dev
+	uv run pytest tests/unit && uv run pytest tests/integration

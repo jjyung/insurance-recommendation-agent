@@ -33,3 +33,14 @@ docker-compose.override.yml
 
 # App
 .adk/
+
+# Terraform local artifacts (never commit)
+deployment/terraform/**/.terraform/
+deployment/terraform/**/.terraform.lock.hcl
+deployment/terraform/**/terraform.tfstate
+deployment/terraform/**/terraform.tfstate.*
+deployment/terraform/**/crash.log
+deployment/terraform/**/override.tf
+deployment/terraform/**/override.tf.json
+deployment/terraform/**/*_override.tf
+deployment/terraform/**/*_override.tf.json
